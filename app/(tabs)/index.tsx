@@ -10,6 +10,7 @@ import {
     View,
     useColorScheme
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import useSafeAreaInsets
 
 // Import our theme helpers
 import { ThemedText } from '@/components/ThemedText'; // Import ThemedText
@@ -50,8 +51,9 @@ export default function WardrobeScreen() {
     toggleOutfitCreationMode,
   } = useWardrobeManager();
 
+  const insets = useSafeAreaInsets(); // Get insets
   const scheme = useColorScheme() ?? 'light';
-  const styles = getStyles(scheme);
+  const styles = getStyles(scheme, insets.bottom);
 
   // Determine if the main wardrobe view (collections, outfits, actions) should be shown
   const showMainWardrobeView = !pendingPastedImage && !isCreatingOutfit;
@@ -83,7 +85,7 @@ export default function WardrobeScreen() {
             isLoading={isLoading}
           />
         ) : (
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1 }}>
             {showMainWardrobeView && (
               <View style={styles.titleContainer}>
                 <ThemedText type="title" colorToken="pinkRaspberry" style={styles.title}>My Wardrobe</ThemedText>
@@ -133,7 +135,9 @@ export default function WardrobeScreen() {
               </View>
             )}
 
-            {showMainWardrobeView && wardrobeItems && (
+            {/* WardrobeList should be visible if not pasting, AND (either in main view OR creating an outfit) */}
+            {/* It also needs wardrobeItems to be loaded */}
+            {!pendingPastedImage && wardrobeItems && (showMainWardrobeView || isCreatingOutfit) && (
               <WardrobeList
                 wardrobeItems={wardrobeItems}
                 onDeleteItem={handleDeleteItem}
@@ -142,13 +146,15 @@ export default function WardrobeScreen() {
                 onSelectItemForOutfit={handleSelectItemForOutfit}
                 isGlobalEditModeActive={isGlobalEditModeActive} 
                 onToggleGlobalEditMode={toggleGlobalEditMode}
-                pendingPastedImage={null}
-                isLoading={isLoading}
+                pendingPastedImage={null} // When WardrobeList is shown, pendingPastedImage is handled or null
+                isLoading={isLoading}       // Pass current loading state
               />
             )}
 
+            {/* Separator only in main view and if not creating outfit */}
             {showMainWardrobeView && <View style={styles.separator} />}
 
+            {/* OutfitList only in main view */}
             {showMainWardrobeView && savedOutfits && (
               <OutfitList
                 savedOutfits={savedOutfits}
@@ -165,7 +171,7 @@ export default function WardrobeScreen() {
 }
 
 // Styles function
-const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
@@ -177,9 +183,11 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 8, 
-    flexGrow: 1,
+    paddingHorizontal: 8,
+    paddingBottom: bottomInset + 16,
+    flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
+    width: '100%',
   },
   titleContainer: {
     width: '100%',
