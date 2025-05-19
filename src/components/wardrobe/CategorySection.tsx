@@ -11,7 +11,7 @@ interface CategorySectionProps {
   onDeleteItem: (itemIndex: number) => void; // Add a callback prop for when an item in this specific category needs to be deleted
   // Add new props for outfit creation mode
   isCreatingOutfit: boolean;
-  currentOutfitSelectionForCategory: string | null; // URI of the item selected in this category for the current outfit, or null
+  currentOutfitSelectionForCategory: string | string[] | null; // Updated type
   onSelectItemForOutfit: (itemUri: string) => void; // Callback when an item is selected for the outfit
   // Add new props for global edit mode
   isGlobalEditModeActive: boolean;
@@ -49,21 +49,27 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
       {/* Use a horizontal ScrollView to display items if they exist */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.itemsScrollView}>
         {/* Map over the items array and render a WardrobeItem for each URI */}
-        {items.map((uri, index) => (
-          <WardrobeItem
-            key={`${title}_item_${index}_${uri.slice(0, 20)}`} // Unique key for each item
-            uri={uri} // Pass the image URI to the WardrobeItem component
-            categoryName={title} // Pass category name
-            onDeleteItem={() => onDeleteItem(index)} // Pass a function to WardrobeItem's onDeleteItem prop that calls the onDeleteItem prop of this component, pre-filled with the current item's index.
-            // Pass outfit related props to WardrobeItem
-            isCreatingOutfit={isCreatingOutfit}
-            isSelectedForOutfit={currentOutfitSelectionForCategory === uri} // Check if this item is selected
-            onSelectItemForOutfit={() => onSelectItemForOutfit(uri)} // Pass the URI of this item
-            // Pass global edit mode props
-            isGlobalEditModeActive={isGlobalEditModeActive}
-            onToggleGlobalEditMode={onToggleGlobalEditMode}
-          />
-        ))}
+        {items.map((uri, index) => {
+          let isSelected = false;
+          if (Array.isArray(currentOutfitSelectionForCategory)) {
+            isSelected = currentOutfitSelectionForCategory.includes(uri);
+          } else {
+            isSelected = currentOutfitSelectionForCategory === uri;
+          }
+          return (
+            <WardrobeItem
+              key={`${title}_item_${index}_${uri.slice(0, 20)}`}
+              uri={uri}
+              categoryName={title}
+              onDeleteItem={() => onDeleteItem(index)}
+              isCreatingOutfit={isCreatingOutfit}
+              isSelectedForOutfit={isSelected}
+              onSelectItemForOutfit={() => onSelectItemForOutfit(uri)}
+              isGlobalEditModeActive={isGlobalEditModeActive}
+              onToggleGlobalEditMode={onToggleGlobalEditMode}
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );

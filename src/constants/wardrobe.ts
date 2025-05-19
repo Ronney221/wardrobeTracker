@@ -3,11 +3,10 @@
 // Define clothing categories as a constant array for easier mapping and iteration
 export const CLOTHING_CATEGORIES = [
   'hat',
-  'shirt',
+  'top',
   'jacket',
-  'bodywear',
-  'pants',
-  'underwear',
+  'bottom',
+  'skirt',
   'shoes',
   'accessories'
 ] as const;

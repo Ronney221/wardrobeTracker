@@ -59,31 +59,27 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
           </ThemedText>
           {CLOTHING_CATEGORIES.map(category => {
             const itemsForCategory = wardrobeItems[category] || [];
-            // Only render CategorySection if it has items OR if we are in outfit creation mode (to show empty slots)
-            // OR if global edit mode is active (to potentially delete last item and see empty state)
             if (itemsForCategory.length > 0 || isCreatingOutfit || isGlobalEditModeActive) {
-              const selectionForCategory = currentOutfitSelection[category];
-              const singleItemSelection = Array.isArray(selectionForCategory) ? null : selectionForCategory;
+              // Get the selection for the current category.
+              // This can be string (for single-select) or string[] (for accessories) or null/undefined.
+              const selectionForCategory = currentOutfitSelection[category as keyof OutfitSelection];
+
               return (
                 <CategorySection
                   key={category}
                   title={category.charAt(0).toUpperCase() + category.slice(1)}
                   items={itemsForCategory}
-                  // Pass a function to CategorySection's onDeleteItem prop.
-                  // This function calls the onDeleteItem prop of WardrobeList, 
-                  // pre-filling it with the current category.
                   onDeleteItem={(itemIndex) => onDeleteItem(category, itemIndex)}
-                  // Pass outfit related props to CategorySection
                   isCreatingOutfit={isCreatingOutfit}
-                  currentOutfitSelectionForCategory={singleItemSelection || null} // Pass single item or null
+                  // Pass the direct selection (string, string[], or null after defaulting undefined)
+                  currentOutfitSelectionForCategory={selectionForCategory || null} 
                   onSelectItemForOutfit={(itemUri) => onSelectItemForOutfit(category, itemUri)}
-                  // Pass global edit mode props down to CategorySection
                   isGlobalEditModeActive={isGlobalEditModeActive}
                   onToggleGlobalEditMode={onToggleGlobalEditMode}
                 />
               );
             }
-            return null; // Don't render empty categories if not creating outfit or in edit mode
+            return null; 
           })}
         </>
       )}
