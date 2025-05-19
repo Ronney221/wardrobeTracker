@@ -1,6 +1,8 @@
+import { ThemedText } from '@/components/ThemedText'; // Import ThemedText
+import { getColor } from '@/src/constants/theme'; // Import getColor
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // Import icons
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native'; // Removed Text, Added useColorScheme
 import { CLOTHING_CATEGORIES } from '../../constants/wardrobe'; // Import clothing categories constant
 import { ClothingCategory, OutfitSelection, WardrobeItems } from '../../types/wardrobe'; // Import WardrobeItems type and ClothingCategory
 import CategorySection from './CategorySection'; // Import the CategorySection component
@@ -32,6 +34,8 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
   isGlobalEditModeActive,
   onToggleGlobalEditMode
 }) => {
+  const scheme = useColorScheme() || 'light';
+  const styles = getStyles(scheme);
   const isWardrobeCompletelyEmpty = Object.values(wardrobeItems).every(categoryArray => categoryArray.length === 0);
 
   // Determine if we should show the main content or the empty state message
@@ -42,22 +46,24 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
     <View style={styles.wardrobeListContainer}>
       {showEmptyState ? (
         <View style={styles.emptyStateContainer}>
-          <MaterialCommunityIcons name="hanger" size={60} color="#BDC3C7" />
-          <Text style={styles.emptyStateTitle}>Your Wardrobe is Bare! 🧥</Text>
-          <Text style={styles.emptyStateSubtitle}>
+          <MaterialCommunityIcons name="hanger" size={60} color={getColor('textDisabled', scheme)} />
+          <ThemedText type="subtitle" style={styles.emptyStateTitle}>Your Wardrobe is Bare! 🧥</ThemedText>
+          <ThemedText style={styles.emptyStateSubtitle}>
             Tap &apos;Paste Clothing Item&apos; above to start adding your clothes.
-          </Text>
+          </ThemedText>
         </View>
       ) : (
         <>
-          <Text style={styles.wardrobeTitle}>
+          <ThemedText type="subtitle" style={styles.wardrobeTitle}>
             {isCreatingOutfit ? "Select Items for Outfit" : "Your Collection"}
-          </Text>
+          </ThemedText>
           {CLOTHING_CATEGORIES.map(category => {
             const itemsForCategory = wardrobeItems[category] || [];
             // Only render CategorySection if it has items OR if we are in outfit creation mode (to show empty slots)
             // OR if global edit mode is active (to potentially delete last item and see empty state)
             if (itemsForCategory.length > 0 || isCreatingOutfit || isGlobalEditModeActive) {
+              const selectionForCategory = currentOutfitSelection[category];
+              const singleItemSelection = Array.isArray(selectionForCategory) ? null : selectionForCategory;
               return (
                 <CategorySection
                   key={category}
@@ -69,7 +75,7 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
                   onDeleteItem={(itemIndex) => onDeleteItem(category, itemIndex)}
                   // Pass outfit related props to CategorySection
                   isCreatingOutfit={isCreatingOutfit}
-                  currentOutfitSelectionForCategory={currentOutfitSelection[category] || null} // Pass only the relevant part
+                  currentOutfitSelectionForCategory={singleItemSelection || null} // Pass single item or null
                   onSelectItemForOutfit={(itemUri) => onSelectItemForOutfit(category, itemUri)}
                   // Pass global edit mode props down to CategorySection
                   isGlobalEditModeActive={isGlobalEditModeActive}
@@ -85,15 +91,12 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   wardrobeListContainer: {
     width: '100%', // Container takes full width
   },
   wardrobeTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16, // Updated from 15
-    color: '#2C3E50',
+    marginBottom: 16,
     alignSelf: 'flex-start',
     marginLeft: '2.5%', // Align with overall container padding
   },
@@ -104,18 +107,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, // Updated from 20
   },
   emptyStateTitle: { // New style for the main title of empty state
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#34495E',
-    marginTop: 16, // Updated from 15
+    marginTop: 16,
     marginBottom: 8, // Kept as 8 (good)
     textAlign: 'center',
   },
   emptyStateSubtitle: { // New style for the subtitle/instruction of empty state
-    fontSize: 16,
-    color: '#999999',
     textAlign: 'center',
     lineHeight: 22,
+    color: getColor('textSecondary', scheme), // Explicitly set if not covered by ThemedText default
   },
   // Separator is not used here anymore, but kept if needed for other designs
   separator: {

@@ -1,7 +1,9 @@
+import { ThemedText } from '@/components/ThemedText';
+import { getColor, getSystemText } from '@/src/constants/theme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Image, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 import { CLOTHING_CATEGORIES } from '../../constants/wardrobe';
 import { ClothingCategory, Outfit } from '../../types/wardrobe';
 
@@ -30,6 +32,8 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
   onToggleGlobalEditMode,
 }) => {
   const router = useRouter();
+  const scheme = useColorScheme() || 'light';
+  const styles = getStyles(scheme);
   const rotationAnim = useRef(new Animated.Value(0)).current;
   const loopAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -132,12 +136,12 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
   return (
     <Pressable onPress={handlePress} onLongPress={handleLongPress} style={styles.pressableWrapper}>
       <Animated.View style={[styles.cardContainer, animatedStyle]}>
-        <Text style={styles.outfitName}>{outfit.name}</Text>
+        <ThemedText type="subtitle" style={styles.outfitName}>{outfit.name}</ThemedText>
         
         {/* Delete indicator for global edit mode */} 
         {isGlobalEditModeActive && (
           <View style={styles.deleteIconContainer}>
-            <Text style={styles.deleteIconText}>✕</Text>
+            <ThemedText type="defaultSemiBold" style={[styles.deleteIconText, { color: getSystemText('systemDestructive', scheme) }]}>✕</ThemedText>
           </View>
         )}
 
@@ -151,11 +155,11 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
                   <Image source={{ uri: itemUri }} style={styles.itemImage} resizeMode="contain" />
                 ) : (
                   <View style={styles.itemPlaceholderContainer}>
-                    <Text style={styles.itemPlaceholderText}>
+                    <ThemedText style={styles.itemPlaceholderText} colorToken="textDisabled">
                       {category === 'accessories' && Array.isArray(itemUri) && itemUri.length > 0 
                         ? `${itemUri.length} Accessories` 
                         : `No ${getCategoryDisplayName(category)}`}
-                    </Text>
+                    </ThemedText>
                   </View>
                 )}
               </View>
@@ -167,34 +171,33 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   pressableWrapper: { 
     width: cardWidth, 
     marginHorizontal: cardMarginHorizontal,
   },
   cardContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: getColor('bgCard', scheme),
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000000',
+    shadowColor: getColor('shadowDefault', scheme),
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.2, // Adjusted opacity for theme
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 4, // Keep elevation for Android
     position: 'relative',
   },
   outfitName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333333',
+    // type="subtitle" in ThemedText will handle font size/weight
     textAlign: 'center',
     marginBottom: 16,
+    // color will be handled by ThemedText default (textPrimary)
   },
   deleteIconContainer: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(200, 50, 50, 0.9)',
+    backgroundColor: getColor('systemDestructive', scheme),
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -202,12 +205,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
     borderWidth: 1,
-    borderColor: 'white',
+    borderColor: getColor('bgCard', scheme), // To make it pop from itself
   },
   deleteIconText: {
-    color: 'white',
-    fontWeight: 'bold',
+    // color is set directly using getSystemText
+    // fontWeight: 'bold', // Handled by ThemedText type="defaultSemiBold"
     fontSize: 12,
+    lineHeight: 16, // Adjust for centering if needed
   },
   mannequinContainer: {
     alignItems: 'center',
@@ -218,10 +222,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: getColor('bgScreen', scheme), // Use a slightly different bg than card
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: getColor('borderSubtle', scheme),
   },
   itemImage: {
     width: '100%',
@@ -233,12 +237,12 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    // backgroundColor: getColor('bgScreen', scheme), // Already set on categorySlot
     borderRadius: 6,
   },
   itemPlaceholderText: {
-    fontSize: 14,
-    color: '#999999',
+    // fontSize: 14, // ThemedText default will handle
+    // color: handled by colorToken="textDisabled"
     textAlign: 'center',
   },
 }); 

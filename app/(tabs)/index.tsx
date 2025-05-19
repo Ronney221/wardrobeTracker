@@ -1,23 +1,31 @@
 import React from 'react';
 import {
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    // Text, // Will use ThemedText or style existing Text
+    TouchableOpacity,
+    View,
+    useColorScheme, // Import useColorScheme
 } from 'react-native';
 
+// Import our theme helpers
+import { ThemedText } from '@/components/ThemedText'; // Import ThemedText
+import { getColor } from '@/src/constants/theme'; // Adjusted path
+
 // Import the custom hook that manages all wardrobe logic
-import { useWardrobeManager } from '../../src/hooks/useWardrobeManager';
+import { useWardrobeManager } from '@/src/hooks/useWardrobeManager'; // Ensure this path is correct based on tsconfig
 // Import the UI components we created
-import { OutfitList } from '../../src/components/outfit/OutfitList';
-import PendingItemView from '../../src/components/wardrobe/PendingItemView';
-import WardrobeList from '../../src/components/wardrobe/WardrobeList';
+import { OutfitList } from '@/src/components/outfit/OutfitList'; // Ensure this path is correct
+import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Ensure this path is correct
+import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Ensure this path is correct
 
 // Main functional component for the Wardrobe Screen
 export default function WardrobeScreen() {
+  const scheme = useColorScheme() || 'light'; // Get current color scheme
+  const styles = getStyles(scheme); // Generate styles based on scheme
+
   // Use the custom hook to get state and handler functions
   const {
     wardrobeItems,
@@ -46,7 +54,7 @@ export default function WardrobeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>My Wardrobe</Text>
+        <ThemedText type="title" style={styles.title}>My Wardrobe</ThemedText>
 
         {/* Main action buttons area */}
         <View style={styles.mainActionsContainer}>
@@ -55,7 +63,7 @@ export default function WardrobeScreen() {
               style={[styles.actionButton, styles.doneEditingButton]} 
               onPress={toggleGlobalEditMode} 
             >
-              <Text style={styles.actionButtonText}>Done Editing</Text>
+              <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Done Editing</ThemedText>
             </TouchableOpacity>
           ) : (
             <>
@@ -65,7 +73,7 @@ export default function WardrobeScreen() {
                   onPress={handlePasteImage} 
                   disabled={isLoading}
                 >
-                  <Text style={styles.actionButtonText}>Paste Clothing Item</Text>
+                  <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Paste Clothing Item</ThemedText>
                 </TouchableOpacity>
               )}
 
@@ -81,9 +89,9 @@ export default function WardrobeScreen() {
                   onPress={toggleOutfitCreationMode} 
                   disabled={isLoading && !isCreatingOutfit} 
                 >
-                  <Text style={styles.actionButtonText}>
+                  <ThemedText style={styles.actionButtonText} colorToken={isCreatingOutfit ? "textOnPinkRaspberry" : "textOnPinkBarbie"}>
                     {isCreatingOutfit ? "Cancel Creation" : "Create Outfit"} 
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
 
                 {!isCreatingOutfit && (
@@ -92,7 +100,7 @@ export default function WardrobeScreen() {
                     onPress={handleSuggestRandomOutfit} 
                     disabled={isLoading}
                   >
-                    <Text style={styles.actionButtonText}>Suggest Outfit</Text>
+                    <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Suggest Outfit</ThemedText>
                   </TouchableOpacity>
                 )}
               </View>
@@ -103,15 +111,15 @@ export default function WardrobeScreen() {
                   onPress={handleSaveCurrentOutfit} 
                   disabled={isLoading}
                 >
-                  <Text style={styles.actionButtonText}>Save Outfit</Text>
+                  <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Save Outfit</ThemedText>
                 </TouchableOpacity>
               )}
             </>
           )}
         </View>
 
-        {/* Loading indicator, shown when isLoading is true and not in global edit mode (to avoid overlap with done button) */}
-        {isLoading && !isGlobalEditModeActive && <ActivityIndicator size="large" color="#007AFF" style={styles.activityIndicator} />}
+        {/* Loading indicator */}
+        {isLoading && !isGlobalEditModeActive && <ActivityIndicator size="large" color={getColor('pinkBarbie', scheme)} style={styles.activityIndicator} />}
 
         {/* Section for the pending image, if one exists and not in other modes - allow if global edit mode is NOT active */}
         {pendingPastedImage && !isCreatingOutfit && !isLoading && !isGlobalEditModeActive && (
@@ -159,8 +167,8 @@ export default function WardrobeScreen() {
         {/* Show a generic loading screen for initial data fetch if preferred */}
         {!isInitialLoadComplete && isLoading && (
             <View style={styles.fullScreenLoaderContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.loadingText}>Loading your wardrobe...</Text>
+                <ActivityIndicator size="large" color={getColor('pinkBarbie', scheme)} />
+                <ThemedText style={styles.loadingText}>Loading your wardrobe...</ThemedText>
             </View>
         )}
 
@@ -169,11 +177,11 @@ export default function WardrobeScreen() {
   );
 }
 
-// Styles for the main WardrobeScreen (can be further refined or use a global theme)
-const styles = StyleSheet.create({
+// Styles function
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: getColor('bgScreen', scheme),
   },
   container: {
     alignItems: 'center',
@@ -181,11 +189,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexGrow: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  title: { // Style for ThemedText type="title" will apply, this is for margin
     marginBottom: 24,
-    color: '#2C3E50',
+    textAlign: 'center', // Ensure title is centered if desired
   },
   mainActionsContainer: {
     flexDirection: 'column',
@@ -193,45 +199,55 @@ const styles = StyleSheet.create({
     width: '90%',
     marginBottom: 16,
   },
+  creationButtonsContainer: { // Added this style for the new View wrapper
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  halfWidthButton: { // Added for side-by-side buttons
+    flex: 1, // Each button takes half the space
+    marginHorizontal: 4, // Add some spacing between buttons
+  },
   actionButton: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 20, // More playful
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.00,
+    elevation: 3, // Standard elevation
+    shadowColor: getColor('shadowDefault', scheme),
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8, // From theme example
+    shadowRadius: 3,    // From theme example
   },
-  actionButtonText: {
-    color: '#FFFFFF',
+  actionButtonText: { // This style is applied to ThemedText, so colorToken prop is primary
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600', // Ensure good weight
   },
   pasteButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: getColor('pinkBarbie', scheme),
   },
   createOutfitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: getColor('pinkBarbie', scheme),
   },
-  suggestOutfitButton: {
-    backgroundColor: '#FFA500',
+  suggestOutfitButton: { // Using pinkRaspberry for variety
+    backgroundColor: getColor('pinkRaspberry', scheme), 
   },
   cancelButton: {
-    backgroundColor: '#E74C3C',
+    backgroundColor: getColor('pinkBlush', scheme), // Softer for cancel
+    // Text color for cancelButton is now `textOnPinkRaspberry` (dark) by default, or `textPrimary` for `pinkBlush`
+    // Ensure the ThemedText `colorToken` for cancel button text is appropriate
   },
   saveOutfitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: getColor('pinkBarbie', scheme),
   },
   doneEditingButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: getColor('pinkBarbie', scheme),
   },
   disabledButton: {
-    backgroundColor: '#BDC3C7',
-    opacity: 0.7,
+    backgroundColor: getColor('textDisabled', scheme), // Use a disabled color token
+    opacity: 0.7, // Keep opacity for visual cue
   },
   activityIndicator: {
     marginVertical: 16,
@@ -239,7 +255,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     width: '90%',
-    backgroundColor: '#BDC3C7',
+    backgroundColor: getColor('borderSubtle', scheme),
     marginVertical: 24,
     alignSelf: 'center',
   },
@@ -247,19 +263,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: getColor('bgScreen', scheme), // Ensure loader screen uses themed BG
   },
-  loadingText: {
+  loadingText: { // Style for ThemedText
     marginTop: 8,
-    fontSize: 16,
-    color: '#34495E'
-  },
-  creationButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  halfWidthButton: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
+  }
+  // Ensure all other styles are defined if they were below line 250
 });

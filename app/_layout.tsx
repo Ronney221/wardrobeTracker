@@ -5,9 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { getColor } from '@/src/constants/theme';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() || 'light';
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -17,8 +18,34 @@ export default function RootLayout() {
     return null;
   }
 
+  const CustomDefaultTheme: typeof DefaultTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: getColor('pinkBarbie', 'light'),
+      background: getColor('bgScreen', 'light'),
+      card: getColor('bgCard', 'light'),
+      text: getColor('textPrimary', 'light'),
+      border: getColor('border', 'light'),
+      notification: getColor('pinkRaspberry', 'light'),
+    },
+  };
+
+  const CustomDarkTheme: typeof DarkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      primary: getColor('pinkBarbie', 'dark'),
+      background: getColor('bgScreen', 'dark'),
+      card: getColor('bgCard', 'dark'),
+      text: getColor('textPrimary', 'dark'),
+      border: getColor('border', 'dark'),
+      notification: getColor('pinkRaspberry', 'dark'),
+    },
+  };
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomDefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />

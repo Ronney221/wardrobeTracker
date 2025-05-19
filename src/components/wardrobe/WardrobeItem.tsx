@@ -1,3 +1,5 @@
+import { ThemedText } from '@/components/ThemedText';
+import { getColor, getSystemText } from '@/src/constants/theme';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -7,8 +9,8 @@ import {
   Image,
   Pressable,
   StyleSheet,
-  Text,
-  View
+  View,
+  useColorScheme,
 } from 'react-native';
 
 interface WardrobeItemProps {
@@ -32,6 +34,8 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
   isGlobalEditModeActive,
   onToggleGlobalEditMode,
 }) => {
+  const scheme = useColorScheme() || 'light';
+  const styles = getStyles(scheme);
   const rotationAnim = useRef(new Animated.Value(0)).current;
   const selectionProgress = useRef(new Animated.Value(0)).current;
   const loopAnimation = useRef<Animated.CompositeAnimation | null>(null);
@@ -127,7 +131,7 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
     }),
     borderColor: selectionProgress.interpolate({
       inputRange: [0, 1],
-      outputRange: ['transparent', '#007AFF'],
+      outputRange: ['transparent', getColor('pinkBarbie', scheme)],
     }),
   };
 
@@ -186,12 +190,12 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
         <Image source={{ uri: uri }} style={styles.image} resizeMode="cover" />
         {isCreatingOutfit && (
           <Animated.View style={[styles.selectionOverlay, overlayAnimatedStyle]}>
-            {isSelectedForOutfit && <Text style={styles.checkmark}>✓</Text>}
+            {isSelectedForOutfit && <ThemedText style={styles.checkmark} colorToken="textOnPinkBarbie">✓</ThemedText>}
           </Animated.View>
         )}
         {isGlobalEditModeActive && !isCreatingOutfit && (
           <View style={styles.deleteIconContainer}>
-            <Text style={styles.deleteIconText}>✕</Text>
+            <ThemedText type="defaultSemiBold" style={[styles.deleteIconText, { color: getSystemText('systemDestructive', scheme) }]}>✕</ThemedText>
           </View>
         )}
       </Animated.View>
@@ -199,20 +203,21 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   pressableContainer: {
-    margin: 4,
-    borderRadius: 8,
+    marginRight: 10,
+    borderRadius: 10,
   },
   container: {
     width: 100,
     height: 120,
     borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: getColor('bgCard', scheme),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: getColor('borderSubtle', scheme),
   },
   image: {
     width: '100%',
@@ -220,34 +225,30 @@ const styles = StyleSheet.create({
   },
   selectionOverlay: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: getColor('pinkBarbieTransparent', scheme),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.3)',
-    borderRadius: 8,
   },
   checkmark: {
     fontSize: 30,
-    color: 'white',
     fontWeight: 'bold',
   },
   deleteIconContainer: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: 'rgba(200, 50, 50, 0.9)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    top: -5,
+    right: -5,
+    backgroundColor: getColor('systemDestructive', scheme),
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-    borderWidth: 2,
-    borderColor: 'white',
+    borderWidth: 1,
+    borderColor: getColor('bgScreen', scheme),
   },
   deleteIconText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 

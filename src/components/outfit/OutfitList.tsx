@@ -1,7 +1,9 @@
+import { ThemedText } from '@/components/ThemedText';
+import { getColor } from '@/src/constants/theme';
+import { Outfit } from '@/src/types/wardrobe';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Outfit } from '../../types/wardrobe';
+import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import { SavedOutfitItem, cardMarginHorizontal, cardWidth } from './SavedOutfitItem';
 
 interface OutfitListProps {
@@ -14,16 +16,18 @@ interface OutfitListProps {
 const snapInterval = cardWidth + (cardMarginHorizontal * 2);
 
 export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOutfit, isGlobalEditModeActive, onToggleGlobalEditMode }) => {
+  const scheme = useColorScheme() || 'light';
+  const styles = getStyles(scheme);
   const showEmptyState = (!savedOutfits || savedOutfits.length === 0) && !isGlobalEditModeActive;
 
   if (showEmptyState) {
     return (
       <View style={styles.emptyStateContainer}>
-        <MaterialCommunityIcons name="lightbulb-on-outline" size={60} color="#BDC3C7" />
-        <Text style={styles.emptyStateTitle}>No Outfits Styled Yet! ✨</Text>
-        <Text style={styles.emptyStateSubtitle}>
+        <MaterialCommunityIcons name="lightbulb-on-outline" size={60} color={getColor('textDisabled', scheme)} />
+        <ThemedText type="subtitle" style={styles.emptyStateTitle}>No Outfits Styled Yet! ✨</ThemedText>
+        <ThemedText style={styles.emptyStateSubtitle}>
           Tap &apos;Create Outfit&apos; above to design your first look.
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -31,8 +35,8 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
   if ((!savedOutfits || savedOutfits.length === 0) && isGlobalEditModeActive) {
     return (
       <View style={styles.listContainer}>
-        <Text style={styles.title}>Saved Outfits</Text>
-        <Text style={styles.emptyText}>No outfits. (Editing)</Text>
+        <ThemedText type="subtitle" style={styles.title}>Saved Outfits</ThemedText>
+        <ThemedText style={styles.emptyText}>No outfits. (Editing)</ThemedText>
       </View>
     )
   }
@@ -40,7 +44,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
   const handleDelete = (outfitId: string, outfitName?: string) => {
     Alert.alert(
       "Delete Outfit",
-      `Are you sure you want to delete the outfit${outfitName ? ` "${outfitName}"` : ''}?`,
+      `Are you sure you want to delete the outfit${outfitName ? ` \"${outfitName}\"` : ''}?`,
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", onPress: () => onDeleteOutfit(outfitId), style: "destructive" },
@@ -50,7 +54,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
 
   return (
     <View style={styles.listContainer}>
-      <Text style={styles.title}>Saved Outfits</Text>
+      <ThemedText type="subtitle" style={styles.title}>Saved Outfits</ThemedText>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
@@ -73,7 +77,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   listContainer: {
     marginTop: 20,
   },
@@ -83,10 +87,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: cardMarginHorizontal,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333333',
     textAlign: 'center',
   },
   emptyStateContainer: {
@@ -97,23 +98,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   emptyStateTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#34495E',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyStateSubtitle: {
-    fontSize: 16,
-    color: '#999999',
     textAlign: 'center',
     lineHeight: 22,
+    color: getColor('textSecondary', scheme),
   },
   emptyText: {
-    fontSize: 16,
-    color: '#777',
     textAlign: 'center',
     marginTop: 10,
+    color: getColor('textDisabled', scheme),
   },
 }); 

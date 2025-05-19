@@ -1,5 +1,7 @@
+import { ThemedText } from '@/components/ThemedText';
+import { getColor } from '@/src/constants/theme';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import WardrobeItem from './WardrobeItem'; // Import the WardrobeItem component
 
 interface CategorySectionProps {
@@ -17,13 +19,16 @@ interface CategorySectionProps {
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDeleteItem, isCreatingOutfit, currentOutfitSelectionForCategory, onSelectItemForOutfit, isGlobalEditModeActive, onToggleGlobalEditMode }) => {
+  const scheme = useColorScheme() || 'light';
+  const styles = getStyles(scheme);
+
   // If there are no items in this category, do not render the section.
   // This can be adjusted if you always want to show category titles even if empty.
   if (items.length === 0 && !isCreatingOutfit) { // Don't show empty category if not creating outfit and it has no items
     return (
         <View style={styles.categorySectionContainer}>
-            <Text style={styles.categoryTitle}>{title}</Text>
-            <Text style={styles.emptyCategoryText}>No items in {title.toLowerCase()} yet.</Text>
+            <ThemedText type="defaultSemiBold" style={styles.categoryTitle}>{title}</ThemedText>
+            <ThemedText style={styles.emptyCategoryText}>No items in {title.toLowerCase()} yet.</ThemedText>
         </View>
     );
   }
@@ -31,8 +36,8 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
    if (items.length === 0 && isCreatingOutfit) {
     return (
       <View style={styles.categorySectionContainer}>
-        <Text style={styles.categoryTitle}>{title}</Text>
-        <Text style={styles.emptyCategoryText}>No items in {title.toLowerCase()} to select.</Text>
+        <ThemedText type="defaultSemiBold" style={styles.categoryTitle}>{title}</ThemedText>
+        <ThemedText style={styles.emptyCategoryText}>No items in {title.toLowerCase()} to select.</ThemedText>
       </View>
     );
   }
@@ -40,7 +45,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
   return (
     <View style={styles.categorySectionContainer}>
       {/* Display the category title */}
-      <Text style={styles.categoryTitle}>{title}</Text>
+      <ThemedText type="defaultSemiBold" style={styles.categoryTitle}>{title}</ThemedText>
       {/* Use a horizontal ScrollView to display items if they exist */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.itemsScrollView}>
         {/* Map over the items array and render a WardrobeItem for each URI */}
@@ -64,17 +69,14 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   categorySectionContainer: {
     width: '100%', // Section takes full width
     marginBottom: 24, // Updated from 25 (or 20 based on earlier thought)
   },
   categoryTitle: {
-    fontSize: 18, // Kept 18 for sub-section title
-    fontWeight: '600',
-    marginBottom: 8, // Updated from 10
-    color: '#34495E',
-    paddingHorizontal: '2.5%', // Align with overall container padding
+    marginBottom: 8,
+    paddingHorizontal: '2.5%',
   },
   itemsScrollView: {
     paddingLeft: '2.5%', // Start items with a bit of padding from the left edge
@@ -82,10 +84,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8, // Updated from 5
   },
   emptyCategoryText: {
-    fontSize: 14,
-    color: '#999999', // Updated from #7F8C8D
     paddingHorizontal: '2.5%',
-    marginBottom: 8, // Updated from 10 to align with title margin
+    marginBottom: 8,
+    color: getColor('textDisabled', scheme),
   },
 });
 
