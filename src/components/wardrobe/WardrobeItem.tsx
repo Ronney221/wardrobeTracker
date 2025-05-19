@@ -149,9 +149,21 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
   };
 
   const handleDeletePress = () => {
+    let itemDisplayName = categoryName.toLowerCase();
+    if (itemData.name) {
+      itemDisplayName = `\"${itemData.name}\"`;
+      if (itemData.subcategory) {
+        itemDisplayName += ` (${itemData.subcategory}, ${categoryName.toLowerCase()})`;
+      } else {
+        itemDisplayName += ` (${categoryName.toLowerCase()})`;
+      }
+    } else if (itemData.subcategory) {
+      itemDisplayName = `${categoryName.toLowerCase()} (${itemData.subcategory})`;
+    }
+
     Alert.alert(
       'Delete Item',
-      `Are you sure you want to delete this ${itemData.name ? `\"${itemData.name}\" (${categoryName.toLowerCase()})` : categoryName.toLowerCase()}?`,
+      `Are you sure you want to delete this ${itemDisplayName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -189,11 +201,18 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
     >
       <Animated.View style={[styles.container, wiggleAnimatedStyle, selectionAnimatedStyle]}> 
         <Image source={{ uri: itemData.uri }} style={styles.image} resizeMode="cover" />
-        {itemData.name && (
+        {(itemData.name || itemData.subcategory) && (
             <View style={styles.nameOverlayContainer}>
-                <ThemedText style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
-                    {itemData.name}
-                </ThemedText>
+                {itemData.name && 
+                    <ThemedText style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
+                        {itemData.name}
+                    </ThemedText>
+                }
+                {itemData.subcategory &&
+                    <ThemedText style={styles.subcategoryText} numberOfLines={1} ellipsizeMode="tail">
+                        ({itemData.subcategory})
+                    </ThemedText>
+                }
             </View>
         )}
         {isCreatingOutfit && (
@@ -244,6 +263,13 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  subcategoryText: {
+    color: '#E0E0E0',
+    fontSize: 9,
+    textAlign: 'center',
+    marginTop: 1,
   },
   selectionOverlay: {
     ...StyleSheet.absoluteFillObject,

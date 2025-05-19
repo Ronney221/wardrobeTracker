@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import React from 'react';
 import {
     ActivityIndicator,
@@ -7,11 +8,12 @@ import {
     // Text, // Will use ThemedText or style existing Text
     TouchableOpacity,
     View,
-    useColorScheme, // Import useColorScheme
+    useColorScheme
 } from 'react-native';
 
 // Import our theme helpers
 import { ThemedText } from '@/components/ThemedText'; // Import ThemedText
+import { ThemedView } from '@/components/ThemedView';
 import { getColor } from '@/src/constants/theme'; // Adjusted path
 
 // Import the custom hook that manages all wardrobe logic
@@ -20,165 +22,154 @@ import { useWardrobeManager } from '@/src/hooks/useWardrobeManager'; // Ensure t
 import { OutfitList } from '@/src/components/outfit/OutfitList'; // Ensure this path is correct
 import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Ensure this path is correct
 import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Ensure this path is correct
+import { CLOTHING_CATEGORIES } from '@/src/constants/wardrobe';
 
 // Main functional component for the Wardrobe Screen
 export default function WardrobeScreen() {
-  const scheme = useColorScheme() || 'light'; // Get current color scheme
-  const styles = getStyles(scheme); // Generate styles based on scheme
-
-  // Use the custom hook to get state and handler functions
   const {
     wardrobeItems,
+    currentOutfitSelection,
+    savedOutfits,
     pendingPastedImage,
+    setPendingPastedImage,
     isLoading,
-    isInitialLoadComplete, // Use this to potentially delay rendering parts of UI until loaded
-    handlePasteImage,
-    handleCategorizeImage,
-    handleDeleteItem, // Get the delete handler from the hook
-    // Outfit related state and handlers
-    isCreatingOutfit,
-    currentOutfitSelection, // Needed for WardrobeList to highlight selected items
-    toggleOutfitCreationMode,
-    handleSelectOutfitItem, // Needed for WardrobeList
-    handleSaveCurrentOutfit,
-    // Outfit list related
-    savedOutfits, 
-    handleDeleteOutfit,
-    // Global Edit Mode
+    isInitialLoadComplete,
     isGlobalEditModeActive,
     toggleGlobalEditMode,
-    // Suggest Outfit
+    handlePasteImage,
+    handleCategorizeImage,
+    handleSelectItemForOutfit,
+    handleSaveCurrentOutfit,
+    handleDeleteOutfit,
+    handleDeleteItem,
     handleSuggestRandomOutfit,
+    userSubcategories,
+    handleAddSubcategory,
+    isCreatingOutfit,
+    setIsCreatingOutfit,
+    toggleOutfitCreationMode,
   } = useWardrobeManager();
 
+  const scheme = useColorScheme() ?? 'light';
+  const styles = getStyles(scheme);
+
+  // Determine if the main wardrobe view (collections, outfits, actions) should be shown
+  const showMainWardrobeView = !pendingPastedImage && !isCreatingOutfit;
+
+  if (isLoading && !isInitialLoadComplete && !pendingPastedImage) {
+    return (
+      <ThemedView style={styles.fullScreenLoaderContainer}>
+        <ActivityIndicator size="large" color={getColor('pinkBarbie', scheme)} />
+        <ThemedText colorToken="textSecondary" style={styles.loadingText}>Loading your wardrobe...</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <ThemedText type="title" style={styles.title}>My Wardrobe</ThemedText>
-
-        {/* Main action buttons area */}
-        <View style={styles.mainActionsContainer}>
-          {isGlobalEditModeActive ? (
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.doneEditingButton]} 
-              onPress={toggleGlobalEditMode} 
-            >
-              <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Done Editing</ThemedText>
-            </TouchableOpacity>
-          ) : (
-            <>
-              {!isCreatingOutfit && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.pasteButton, isLoading && styles.disabledButton]} 
-                  onPress={handlePasteImage} 
-                  disabled={isLoading}
-                >
-                  <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Paste Clothing Item</ThemedText>
-                </TouchableOpacity>
-              )}
-
-              {/* Container for Create and Suggest Outfit buttons to be side-by-side or stacked if narrow */}
-              <View style={styles.creationButtonsContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.actionButton, 
-                    styles.halfWidthButton, 
-                    isCreatingOutfit ? styles.cancelButton : styles.createOutfitButton, 
-                    isLoading && !isCreatingOutfit && styles.disabledButton
-                  ]} 
-                  onPress={toggleOutfitCreationMode} 
-                  disabled={isLoading && !isCreatingOutfit} 
-                >
-                  <ThemedText style={styles.actionButtonText} colorToken={isCreatingOutfit ? "textOnPinkRaspberry" : "textOnPinkBarbie"}>
-                    {isCreatingOutfit ? "Cancel Creation" : "Create Outfit"} 
-                  </ThemedText>
-                </TouchableOpacity>
-
-                {!isCreatingOutfit && (
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.halfWidthButton, styles.suggestOutfitButton, isLoading && styles.disabledButton]} 
-                    onPress={handleSuggestRandomOutfit} 
-                    disabled={isLoading}
-                  >
-                    <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Suggest Outfit</ThemedText>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {isCreatingOutfit && (
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.saveOutfitButton, isLoading && styles.disabledButton]} 
-                  onPress={handleSaveCurrentOutfit} 
-                  disabled={isLoading}
-                >
-                  <ThemedText style={styles.actionButtonText} colorToken="textOnPinkBarbie">Save Outfit</ThemedText>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        </View>
-
-        {/* Loading indicator */}
-        {isLoading && !isGlobalEditModeActive && <ActivityIndicator size="large" color={getColor('pinkBarbie', scheme)} style={styles.activityIndicator} />}
-
-        {/* Section for the pending image, if one exists and not in other modes - allow if global edit mode is NOT active */}
-        {pendingPastedImage && !isCreatingOutfit && !isLoading && !isGlobalEditModeActive && (
+    <SafeAreaView style={styles.safeAreaContainer}>
+      <ThemedView style={styles.container}>
+        {pendingPastedImage && !isCreatingOutfit ? (
           <PendingItemView
             pendingImageUri={pendingPastedImage}
-            onCategorizeImage={handleCategorizeImage}
+            onCancel={() => setPendingPastedImage(null)}
+            onCategorizeImage={(category, name, subcategory) => {
+              handleCategorizeImage(category, name, subcategory);
+              setPendingPastedImage(null);
+            }}
+            availableCategories={CLOTHING_CATEGORIES}
+            colorScheme={scheme}
+            userSubcategories={userSubcategories || {}}
+            onAddSubcategory={handleAddSubcategory}
             isLoading={isLoading}
           />
-        )}
-        
-        {/* Visual separator if a pending item is shown - allow if global edit mode is NOT active */}
-        {pendingPastedImage && !isCreatingOutfit && !isLoading && !isGlobalEditModeActive && <View style={styles.separator} />}
+        ) : (
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            {showMainWardrobeView && (
+              <View style={styles.titleContainer}>
+                <ThemedText type="title" colorToken="pinkRaspberry" style={styles.title}>My Wardrobe</ThemedText>
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={handlePasteImage}>
+                    <FontAwesome name="paste" size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Paste Item</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={toggleOutfitCreationMode}>
+                    <FontAwesome name={isCreatingOutfit ? "close" : "plus"} size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>
+                      {isCreatingOutfit ? "Cancel Outfit" : "Create Outfit"}
+                    </ThemedText>
+                  </TouchableOpacity>
+                   <TouchableOpacity 
+                      style={[styles.button, styles.actionButton, isGlobalEditModeActive && styles.activeEditButton]} 
+                      onPress={toggleGlobalEditMode}
+                    >
+                      <FontAwesome name="edit" size={20} color={getColor(isGlobalEditModeActive ? 'textOnPinkBarbie' : 'textOnPinkBarbie', scheme)} />
+                      <ThemedText colorToken={isGlobalEditModeActive ? 'textOnPinkBarbie' : 'textOnPinkBarbie'} style={styles.buttonText}>
+                        {isGlobalEditModeActive ? "Done Editing" : "Edit Items"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
-        {/* Display the wardrobe list: always show if initial load complete and not actively loading overall. Edit mode will control item appearance. */}
-        {isInitialLoadComplete && !isLoading && (
-            <WardrobeList 
-                wardrobeItems={wardrobeItems} 
-                pendingPastedImage={pendingPastedImage} 
-                isLoading={isLoading} 
-                onDeleteItem={handleDeleteItem} // Pass the delete handler to WardrobeList
-                // Outfit related props for WardrobeList
+            {isCreatingOutfit && (
+              <View style={styles.outfitCreationContainer}>
+                <ThemedText type="subtitle" colorToken="pinkRaspberry" style={styles.subHeader}>
+                  Create New Outfit
+                </ThemedText>
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity 
+                    style={[styles.button, styles.saveOutfitButton]} 
+                    onPress={handleSaveCurrentOutfit} 
+                    disabled={Object.values(currentOutfitSelection).every(item => item === null || (Array.isArray(item) && item.length === 0))}
+                  >
+                    <FontAwesome name="save" size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Save Outfit</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.button, styles.suggestButton]} onPress={handleSuggestRandomOutfit}>
+                      <FontAwesome name="random" size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                      <ThemedText style={styles.buttonText} colorToken="textOnPinkBarbie">Suggest Random</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {showMainWardrobeView && wardrobeItems && (
+              <WardrobeList
+                wardrobeItems={wardrobeItems}
+                onDeleteItem={handleDeleteItem}
                 isCreatingOutfit={isCreatingOutfit}
                 currentOutfitSelection={currentOutfitSelection}
-                onSelectItemForOutfit={handleSelectOutfitItem}
-                // Pass global edit mode props
-                isGlobalEditModeActive={isGlobalEditModeActive}
+                onSelectItemForOutfit={handleSelectItemForOutfit}
+                isGlobalEditModeActive={isGlobalEditModeActive} 
                 onToggleGlobalEditMode={toggleGlobalEditMode}
-            />
-        )}
+                pendingPastedImage={null}
+                isLoading={isLoading}
+              />
+            )}
 
-        {/* Display the Saved Outfits list: always show if initial load complete and not actively loading overall. Edit mode will control item appearance. */}
-        {isInitialLoadComplete && !isLoading && (
-            <>
-                <View style={styles.separator} />
-                <OutfitList 
-                    savedOutfits={savedOutfits} 
-                    onDeleteOutfit={handleDeleteOutfit} 
-                    // Pass global edit mode props
-                    isGlobalEditModeActive={isGlobalEditModeActive}
-                    onToggleGlobalEditMode={toggleGlobalEditMode}
-                />
-            </>
-        )}
+            {showMainWardrobeView && <View style={styles.separator} />}
 
-        {/* Show a generic loading screen for initial data fetch if preferred */}
-        {!isInitialLoadComplete && isLoading && (
-            <View style={styles.fullScreenLoaderContainer}>
-                <ActivityIndicator size="large" color={getColor('pinkBarbie', scheme)} />
-                <ThemedText style={styles.loadingText}>Loading your wardrobe...</ThemedText>
-            </View>
+            {showMainWardrobeView && savedOutfits && (
+              <OutfitList
+                savedOutfits={savedOutfits}
+                onDeleteOutfit={handleDeleteOutfit}
+                isGlobalEditModeActive={isGlobalEditModeActive}
+                onToggleGlobalEditMode={toggleGlobalEditMode} 
+              />
+            )}
+          </ScrollView>
         )}
-
-      </ScrollView>
+      </ThemedView>
     </SafeAreaView>
   );
 }
 
 // Styles function
 const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: getColor('bgScreen', scheme),
+  },
   safeArea: {
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
@@ -186,71 +177,68 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8, 
     flexGrow: 1,
+    backgroundColor: getColor('bgScreen', scheme),
   },
-  title: { // Style for ThemedText type="title" will apply, this is for margin
-    marginBottom: 24,
-    textAlign: 'center', // Ensure title is centered if desired
-  },
-  mainActionsContainer: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    width: '90%',
-    marginBottom: 16,
-  },
-  creationButtonsContainer: { // Added this style for the new View wrapper
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  titleContainer: {
     width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  halfWidthButton: { // Added for side-by-side buttons
-    flex: 1, // Each button takes half the space
-    marginHorizontal: 4, // Add some spacing between buttons
+  title: {
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  subHeader: {
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    width: '100%',
+    marginBottom: 10,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    margin: 4, 
+    elevation: 2, // Android shadow
+    shadowColor: getColor('shadowDefault', scheme), // iOS shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   actionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20, // More playful
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    elevation: 3, // Standard elevation
-    shadowColor: getColor('shadowDefault', scheme),
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8, // From theme example
-    shadowRadius: 3,    // From theme example
+    backgroundColor: getColor('buttonPrimary', scheme),
   },
-  actionButtonText: { // This style is applied to ThemedText, so colorToken prop is primary
-    fontSize: 16,
-    fontWeight: '600', // Ensure good weight
-  },
-  pasteButton: {
-    backgroundColor: getColor('pinkBarbie', scheme),
-  },
-  createOutfitButton: {
-    backgroundColor: getColor('pinkBarbie', scheme),
-  },
-  suggestOutfitButton: { // Using pinkRaspberry for variety
-    backgroundColor: getColor('pinkRaspberry', scheme), 
-  },
-  cancelButton: {
-    backgroundColor: getColor('pinkBlush', scheme), // Softer for cancel
-    // Text color for cancelButton is now `textOnPinkRaspberry` (dark) by default, or `textPrimary` for `pinkBlush`
-    // Ensure the ThemedText `colorToken` for cancel button text is appropriate
+  activeEditButton: {
+    backgroundColor: getColor('pinkRaspberry', scheme), // Darker when active
   },
   saveOutfitButton: {
-    backgroundColor: getColor('pinkBarbie', scheme),
+    backgroundColor: getColor('buttonPrimary', scheme),
   },
-  doneEditingButton: {
-    backgroundColor: getColor('pinkBarbie', scheme),
+   suggestButton: {
+    backgroundColor: getColor('buttonSecondary', scheme),
   },
-  disabledButton: {
-    backgroundColor: getColor('textDisabled', scheme), // Use a disabled color token
-    opacity: 0.7, // Keep opacity for visual cue
+  buttonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
-  activityIndicator: {
-    marginVertical: 16,
+  outfitCreationContainer: {
+    width: '100%',
+    marginBottom: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: getColor('borderSubtle', scheme),
+    borderRadius: 8,
+    backgroundColor: getColor('bgCard', scheme),
   },
   separator: {
     height: 1,
@@ -263,10 +251,10 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: getColor('bgScreen', scheme), // Ensure loader screen uses themed BG
+    backgroundColor: getColor('bgScreen', scheme),
   },
-  loadingText: { // Style for ThemedText
+  loadingText: {
     marginTop: 8,
-  }
-  // Ensure all other styles are defined if they were below line 250
+    fontSize: 16,
+  },
 });

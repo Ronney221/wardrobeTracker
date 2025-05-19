@@ -2,13 +2,12 @@
 
 // Define clothing categories as a constant array for easier mapping and iteration
 export const CLOTHING_CATEGORIES = [
-  'hat',
   'top',
-  'jacket',
   'bottom',
-  'skirt',
+  'outerwear',
   'shoes',
   'accessories'
+  // Old: 'hat', 'jacket', 'skirt' removed as top-level
 ] as const;
 
 // Storage key for wardrobe items

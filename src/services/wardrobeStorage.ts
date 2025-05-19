@@ -2,8 +2,11 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
-import { WARDROBE_STORAGE_KEY } from '../constants/wardrobe'; // Import the correct storage key
-import { WardrobeItems } from '../types/wardrobe'; // Import the WardrobeItems and WardrobeItemData types
+import { CLOTHING_CATEGORIES as NEW_CLOTHING_CATEGORIES, WARDROBE_STORAGE_KEY } from '../constants/wardrobe';
+import { ClothingCategory, initialWardrobeState, WardrobeItemData, WardrobeItems } from '../types/wardrobe';
+
+// Helper to generate a unique ID for items during migration if they don't have one
+const generateMigrationId = (cat: string, idx: number) => `${cat}-${idx}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 /**
  * Loads wardrobe items from AsyncStorage and transforms old data if necessary.
@@ -11,60 +14,121 @@ import { WardrobeItems } from '../types/wardrobe'; // Import the WardrobeItems a
  */
 export const loadWardrobeFromStorage = async (): Promise<WardrobeItems | null> => {
   try {
-    // Attempt to get the stringified wardrobe data from AsyncStorage using the defined key
     const storedItems = await AsyncStorage.getItem(WARDROBE_STORAGE_KEY);
-    // If data exists in storage (is not null)
     if (storedItems !== null) {
       const parsedJson = JSON.parse(storedItems);
-      // Check if migration is needed (e.g., by checking the structure of the first item in any category)
-      // This is a simple check; more complex checks might be needed for more intricate migrations.
-      let needsMigration = false;
-      if (parsedJson) {
-        for (const categoryKey in parsedJson) {
-          if (Object.prototype.hasOwnProperty.call(parsedJson, categoryKey)) {
-            const categoryItems = parsedJson[categoryKey];
-            if (Array.isArray(categoryItems) && categoryItems.length > 0 && typeof categoryItems[0] === 'string') {
-              needsMigration = true;
-              break;
+      if (!parsedJson) return initialWardrobeState; // Handle empty/invalid storage
+
+      // Initialize with new structure to ensure all new categories exist
+      const migratedItems: WardrobeItems = JSON.parse(JSON.stringify(initialWardrobeState)); 
+      let needsMajorMigration = false;
+      let alertMessages: string[] = [];
+
+      // Check for old category keys or old item formats
+      const oldCategoryKeys = ['hat', 'shirt', 'jacket', 'pants', 'skirt', 'bodywear', 'underwear'];
+      for (const oldCat of oldCategoryKeys) {
+        if (parsedJson.hasOwnProperty(oldCat)) {
+          needsMajorMigration = true;
+          break;
+        }
+      }
+      if (!needsMajorMigration) { // If no old keys, check format of items in new keys
+        for (const categoryKey of NEW_CLOTHING_CATEGORIES) {
+            const items = parsedJson[categoryKey as keyof WardrobeItems];
+            if (items && items.length > 0 && typeof items[0] === 'string') {
+                needsMajorMigration = true; // Old string URI format exists
+                break;
             }
-            // If it's already an object, assume it's WardrobeItemData (or empty array)
-            if (Array.isArray(categoryItems) && categoryItems.length > 0 && typeof categoryItems[0] === 'object' && categoryItems[0] !== null && 'uri' in categoryItems[0]) {
-              needsMigration = false; // Already new format
-              break;
-            }
-          }
         }
       }
 
-      if (needsMigration) {
-        console.log("Migrating old wardrobe data to new format...");
-        const migratedItems: WardrobeItems = {} as WardrobeItems;
-        for (const categoryKey in parsedJson) {
-          if (Object.prototype.hasOwnProperty.call(parsedJson, categoryKey)) {
-            const oldCategoryItems = parsedJson[categoryKey] as string[];
-            migratedItems[categoryKey as keyof WardrobeItems] = oldCategoryItems.map((uri, index) => ({
-              id: `${categoryKey}-${index}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-              uri: uri,
-              // name: undefined, // name will be undefined by default
-            }));
-          }
+      if (needsMajorMigration) {
+        console.log("Performing major wardrobe data migration...");
+        alertMessages.push("Your wardrobe data is being updated to support new categories and subcategories.");
+
+        const processCategory = (oldCatItems: any[], newCat: ClothingCategory, defaultSubcategory?: string) => {
+          if (!Array.isArray(oldCatItems)) return;
+          oldCatItems.forEach((item, index) => {
+            let newItemData: WardrobeItemData;
+            if (typeof item === 'string') { // Is an old URI string
+              newItemData = {
+                id: generateMigrationId(newCat, migratedItems[newCat].length + index),
+                uri: item,
+                subcategory: defaultSubcategory,
+              };
+            } else if (typeof item === 'object' && item !== null && item.uri) { // Is a WardrobeItemData-like object
+              newItemData = {
+                ...item, // Spread to keep existing id, uri, name
+                id: item.id || generateMigrationId(newCat, migratedItems[newCat].length + index),
+                subcategory: item.subcategory || defaultSubcategory,
+              };
+            } else {
+              return; // Skip invalid item
+            }
+            migratedItems[newCat].push(newItemData);
+          });
+        };
+
+        // Migration logic
+        if (parsedJson.shirt) processCategory(parsedJson.shirt, 'top');
+        if (parsedJson.pants) processCategory(parsedJson.pants, 'bottom', 'pants'); // Default subcategory
+        if (parsedJson.jacket) processCategory(parsedJson.jacket, 'outerwear', 'jacket');
+        if (parsedJson.hat) processCategory(parsedJson.hat, 'accessories', 'hat');
+        if (parsedJson.skirt) processCategory(parsedJson.skirt, 'bottom', 'skirt');
+        // bodywear and underwear are discarded
+
+        // Handle items that might already be in new categories but in old string format
+        for (const newCat of NEW_CLOTHING_CATEGORIES) {
+            if (parsedJson[newCat] && !migratedItems[newCat].length) { // If not processed by old key logic
+                const items = parsedJson[newCat];
+                if (items.length > 0 && typeof items[0] === 'string') {
+                    console.log(`Migrating string URIs in category: ${newCat}`);
+                    migratedItems[newCat] = []; // Clear if it was just copied from initialWardrobeState potentially
+                    processCategory(items, newCat);
+                }
+            }
         }
-        Alert.alert("Data Updated", "Your wardrobe items have been updated to a new format. Any new items will now support names!");
-        return migratedItems;
+
+        // Preserve items already in new categories and new format if not touched by above
+        for (const key of Object.keys(initialWardrobeState)) {
+            const cat = key as ClothingCategory;
+            if (parsedJson[cat] && !needsMajorMigration) { // if not already handled by major migration
+                 // and if parsedJson[cat] is already WardrobeItemData[], copy it over
+                if (Array.isArray(parsedJson[cat]) && (parsedJson[cat].length === 0 || (typeof parsedJson[cat][0] === 'object' && parsedJson[cat][0].uri))) {
+                    migratedItems[cat] = parsedJson[cat];
+                }
+            }
+        }
+
       } else {
-        // If no migration needed, or already new format, return as is (assuming it matches WardrobeItems)
-        return parsedJson as WardrobeItems;
+        // No major structural changes (old categories gone), but could still be old string URIs in current cats
+        // This case is now handled by the extended needsMajorMigration check above.
+        // So, if not needsMajorMigration, assume it's in the correct WardrobeItemData format.
+        console.log("Wardrobe data is already in or close to the new format. Applying minor checks.");
+        // Ensure all new categories exist, copy from parsedJson if valid
+        for (const key of NEW_CLOTHING_CATEGORIES) {
+            const cat = key as ClothingCategory;
+            if (parsedJson.hasOwnProperty(cat) && Array.isArray(parsedJson[cat])) {
+                migratedItems[cat] = parsedJson[cat].map((item: any, index: number) => {
+                    if (typeof item === 'string') { // Should have been caught by needsMajorMigration
+                        return { id: generateMigrationId(cat, index), uri: item };
+                    }
+                    return { ...item, id: item.id || generateMigrationId(cat, index) }; // Ensure ID
+                });
+            }
+        }
       }
+      
+      if (alertMessages.length > 0) {
+        Alert.alert("Data Update", alertMessages.join('\n'));
+      }
+      return migratedItems;
     }
-    // If no data is found, return null
-    return null;
+    return initialWardrobeState; // Nothing in storage, return fresh initial state
   } catch (error) {
-    // Log any error encountered during the loading process
-    console.error('Failed to load wardrobe items from storage:', error);
-    // Inform the user about the failure to load data
-    Alert.alert('Storage Error', 'Could not load saved wardrobe items. Please restart the app.');
-    // Return null in case of an error
-    return null;
+    console.error('Failed to load or migrate wardrobe items from storage:', error);
+    Alert.alert('Storage Error', 'Could not load saved wardrobe items. Returning to a default state.');
+    return initialWardrobeState; // Return default state on error
   }
 };
 
@@ -75,14 +139,10 @@ export const loadWardrobeFromStorage = async (): Promise<WardrobeItems | null> =
  */
 export const saveWardrobeToStorage = async (items: WardrobeItems): Promise<void> => {
   try {
-    // Stringify the WardrobeItems object to a JSON string
     const jsonValue = JSON.stringify(items);
-    // Save the JSON string to AsyncStorage using the defined key
     await AsyncStorage.setItem(WARDROBE_STORAGE_KEY, jsonValue);
   } catch (error) {
-    // Log any error encountered during the saving process
     console.error('Failed to save wardrobe items to storage:', error);
-    // Inform the user about the failure to save data
     Alert.alert('Storage Error', 'Could not save wardrobe items. Please try again.');
   }
 }; 

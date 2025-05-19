@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { CLOTHING_CATEGORIES, OUTFIT_LOG_STORAGE_KEY, OUTFITS_STORAGE_KEY } from '../constants/wardrobe';
+import { loadUserSubcategories, saveUserSubcategories, UserSubcategories } from '../services/subcategoryService'; // Import subcategory service
 import { loadWardrobeFromStorage, saveWardrobeToStorage } from '../services/wardrobeStorage';
 import { ClothingCategory, initialOutfitSelection, initialWardrobeState, Outfit, OutfitLogEntry, OutfitSelection, WardrobeItemData, WardrobeItems } from '../types/wardrobe';
 
@@ -33,6 +34,9 @@ export const useWardrobeManager = () => {
   // New state for outfit log
   const [outfitLog, setOutfitLog] = useState<OutfitLogEntry[]>([]);
 
+  // New state for user subcategories
+  const [userSubcategories, setUserSubcategories] = useState<UserSubcategories | null>(null);
+
   // Load wardrobe data from storage when the hook is first used (component mounts)
   useEffect(() => {
     const loadInitialData = async () => {
@@ -43,8 +47,10 @@ export const useWardrobeManager = () => {
 
         const storedOutfits = await AsyncStorage.getItem(OUTFITS_STORAGE_KEY);
         if (storedOutfits) setSavedOutfits(JSON.parse(storedOutfits));
+        
+        const loadedSubcategories = await loadUserSubcategories(); // Load subcategories
+        setUserSubcategories(loadedSubcategories); // Set subcategories state
 
-        // Load outfit log
         const storedOutfitLog = await AsyncStorage.getItem(OUTFIT_LOG_STORAGE_KEY);
         if (storedOutfitLog) setOutfitLog(JSON.parse(storedOutfitLog));
 
@@ -117,12 +123,13 @@ export const useWardrobeManager = () => {
   }, [isCreatingOutfit, isGlobalEditModeActive]);
 
   // Callback function to handle categorizing the pending image
-  const handleCategorizeImage = useCallback((category: ClothingCategory, name?: string) => {
+  const handleCategorizeImage = useCallback((category: ClothingCategory, name?: string, subcategory?: string) => {
     if (pendingPastedImage) {
       const newItem: WardrobeItemData = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 15), // More unique ID
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 15),
         uri: pendingPastedImage,
-        name: name || undefined, // Ensure name is explicitly undefined if empty
+        name: name || undefined,
+        subcategory: subcategory || undefined, // Save subcategory
       };
 
       setWardrobeItems(prevItems => ({
@@ -131,7 +138,11 @@ export const useWardrobeManager = () => {
       }));
       setPendingPastedImage(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Alert.alert('Categorized!', `Item added to ${category}${name ? ` as "${name}"` : ""}.`);
+      let alertMessage = `Item added to ${category}`;
+      if (name) alertMessage += ` as "${name}"`;
+      if (subcategory) alertMessage += ` (Subcategory: ${subcategory})`;
+      alertMessage += ".";
+      Alert.alert('Categorized!', alertMessage);
     }
   }, [pendingPastedImage]);
 
@@ -173,46 +184,36 @@ export const useWardrobeManager = () => {
 
   // --- Outfit Handler Functions ---
   const toggleOutfitCreationMode = useCallback(() => {
+    setIsCreatingOutfit(prev => !prev);
     if (isGlobalEditModeActive) {
-      setIsGlobalEditModeActive(false); // Exit edit mode if starting/cancelling outfit creation
+      setIsGlobalEditModeActive(false); // Turn off global edit mode when toggling outfit creation
     }
-    setIsCreatingOutfit(prev => {
-      if (prev) { // If turning OFF outfit creation mode
-        setCurrentOutfitSelection(initialOutfitSelection); // Clear current selection
-      }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      return !prev; // Toggle the mode
-    });
-  }, [currentOutfitSelection, isGlobalEditModeActive]);
+    // Reset current outfit selection when exiting outfit creation mode
+    if (isCreatingOutfit) { // Note: this checks the state *before* toggle, so if it was true, it means we are exiting
+      setCurrentOutfitSelection(initialOutfitSelection);
+    }
+  }, [isGlobalEditModeActive, isCreatingOutfit]);
 
-  const handleSelectOutfitItem = useCallback((category: ClothingCategory, itemUri: string) => {
-    if (!isCreatingOutfit) return;
+  const handleSelectItemForOutfit = useCallback((category: ClothingCategory, itemUri: string) => {
+    if (!isCreatingOutfit) return; // Should not happen if UI is correct
 
     setCurrentOutfitSelection(prevSelection => {
+      const newSelection = { ...prevSelection };
+      const currentCategorySelection = prevSelection[category];
+
       if (category === 'accessories') {
-        const currentAccessories = prevSelection.accessories || [];
-        const isAlreadySelected = currentAccessories.includes(itemUri);
-        let newAccessories;
-        if (isAlreadySelected) {
-          newAccessories = currentAccessories.filter(uri => uri !== itemUri);
+        const currentAccessories = (currentCategorySelection || []) as string[];
+        if (currentAccessories.includes(itemUri)) {
+          newSelection.accessories = currentAccessories.filter(uri => uri !== itemUri);
         } else {
-          newAccessories = [...currentAccessories, itemUri];
+          newSelection.accessories = [...currentAccessories, itemUri];
         }
-        return {
-          ...prevSelection,
-          accessories: newAccessories,
-        };
       } else {
-        // For single-selection categories (including new ones like bodywear, underwear)
-        const currentSelectionForCategory = prevSelection[category as Exclude<ClothingCategory, 'accessories'>];
-        const newSelectionForCategory = currentSelectionForCategory === itemUri ? null : itemUri;
-        return {
-          ...prevSelection,
-          [category]: newSelectionForCategory,
-        };
+        // For other categories, toggle selection (or select if null)
+        newSelection[category] = currentCategorySelection === itemUri ? null : itemUri;
       }
+      return newSelection;
     });
-    Haptics.selectionAsync();
   }, [isCreatingOutfit]);
 
   const handleSaveCurrentOutfit = useCallback(() => {
@@ -350,29 +351,57 @@ export const useWardrobeManager = () => {
     Alert.alert("Outfit Logged", `${outfitName || 'Outfit'} marked for ${date}.`);
   }, []);
 
+  // Function to add a new subcategory to a main category
+  const handleAddSubcategory = useCallback(async (mainCategory: ClothingCategory, newSubcategoryName: string) => {
+    if (!newSubcategoryName || newSubcategoryName.trim() === "") {
+      Alert.alert("Invalid Name", "Subcategory name cannot be empty.");
+      return false;
+    }
+    const trimmedName = newSubcategoryName.trim();
+
+    setUserSubcategories(prev => {
+      const currentSubsForMainCat = prev?.[mainCategory] || [];
+      if (currentSubsForMainCat.some(sub => sub.toLowerCase() === trimmedName.toLowerCase())) {
+        Alert.alert("Duplicate", `Subcategory "${trimmedName}" already exists for ${mainCategory}.`);
+        return prev; // Return previous state if duplicate
+      }
+      const updatedSubsForMainCat = [...currentSubsForMainCat, trimmedName].sort(); // Add and sort
+      const newState = {
+        ...prev,
+        [mainCategory]: updatedSubsForMainCat,
+      };
+      saveUserSubcategories(newState); // Save to AsyncStorage
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Subcategory Added", `"${trimmedName}" added to ${mainCategory}.`);
+      return newState;
+    });
+    return true; // Indicate success for UI purposes if needed
+  }, []);
+
   // Return the state variables and handler functions to be used by the component
   return {
     wardrobeItems,
     pendingPastedImage,
+    setPendingPastedImage,
     isLoading,
     isInitialLoadComplete,
     handlePasteImage,
     handleCategorizeImage,
-    handleDeleteItem, // Expose the new delete handler
-    // Outfit related exports
+    handleDeleteItem,
     isCreatingOutfit,
+    setIsCreatingOutfit,
     currentOutfitSelection,
-    savedOutfits,
-    toggleOutfitCreationMode,
-    handleSelectOutfitItem,
+    handleSelectItemForOutfit,
     handleSaveCurrentOutfit,
-    handleDeleteOutfit, // Expose the new outfit delete handler
-    // Global Edit Mode
+    savedOutfits,
+    handleDeleteOutfit,
     isGlobalEditModeActive,
     toggleGlobalEditMode,
-    handleSuggestRandomOutfit, // Expose the new handler
-    // Calendar feature exports
+    handleSuggestRandomOutfit,
     outfitLog,
     logOutfitForDate,
+    userSubcategories,
+    handleAddSubcategory,
+    toggleOutfitCreationMode,
   };
 }; 
