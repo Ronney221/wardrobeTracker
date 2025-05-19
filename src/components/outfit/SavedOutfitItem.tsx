@@ -31,12 +31,16 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
 }) => {
   const router = useRouter();
   const rotationAnim = useRef(new Animated.Value(0)).current;
+  const loopAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (isGlobalEditModeActive) {
-      Animated.loop(
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+      }
+      loopAnimation.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(rotationAnim, {
+          Animated.timing(rotationAnim, { 
             toValue: 1, 
             duration: 100,
             easing: Easing.linear,
@@ -68,8 +72,13 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
           }),
           Animated.delay(1000), 
         ])
-      ).start();
+      );
+      loopAnimation.current.start();
     } else {
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+        loopAnimation.current = null;
+      }
       Animated.spring(rotationAnim, { 
         toValue: 0,
         useNativeDriver: true,
@@ -79,8 +88,12 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
     }
 
     return () => {
-      rotationAnim.setValue(0); 
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+        loopAnimation.current = null;
+      }
       rotationAnim.stopAnimation();
+      rotationAnim.setValue(0);
     };
   }, [isGlobalEditModeActive, rotationAnim]);
 
@@ -131,13 +144,18 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
         <View style={styles.mannequinContainer}>
           {CategoryDisplayOrder.map((category) => {
             const itemUri = outfit[category];
+            const isItemUriString = typeof itemUri === 'string';
             return (
               <View key={category} style={styles.categorySlot}>
-                {itemUri ? (
+                {isItemUriString && itemUri ? (
                   <Image source={{ uri: itemUri }} style={styles.itemImage} resizeMode="contain" />
                 ) : (
                   <View style={styles.itemPlaceholderContainer}>
-                    <Text style={styles.itemPlaceholderText}>No {getCategoryDisplayName(category)}</Text>
+                    <Text style={styles.itemPlaceholderText}>
+                      {category === 'accessories' && Array.isArray(itemUri) && itemUri.length > 0 
+                        ? `${itemUri.length} Accessories` 
+                        : `No ${getCategoryDisplayName(category)}`}
+                    </Text>
                   </View>
                 )}
               </View>

@@ -1,14 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
-    Alert,
-    Animated,
-    Easing,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View
+  Alert,
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 interface WardrobeItemProps {
@@ -34,10 +34,14 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
 }) => {
   const rotationAnim = useRef(new Animated.Value(0)).current;
   const selectionProgress = useRef(new Animated.Value(0)).current;
+  const loopAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (isGlobalEditModeActive) {
-      Animated.loop(
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+      }
+      loopAnimation.current = Animated.loop(
         Animated.sequence([
           Animated.timing(rotationAnim, {
             toValue: 1,
@@ -71,8 +75,13 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
           }),
           Animated.delay(1000),
         ])
-      ).start();
+      );
+      loopAnimation.current.start();
     } else {
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+        loopAnimation.current = null;
+      }
       Animated.spring(rotationAnim, {
         toValue: 0,
         useNativeDriver: false,
@@ -82,8 +91,12 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
     }
 
     return () => {
-      rotationAnim.setValue(0);
+      if (loopAnimation.current) {
+        loopAnimation.current.stop();
+        loopAnimation.current = null;
+      }
       rotationAnim.stopAnimation();
+      rotationAnim.setValue(0);
     };
   }, [isGlobalEditModeActive, rotationAnim]);
 
