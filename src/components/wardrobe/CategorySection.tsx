@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
 import { getColor } from '@/src/constants/theme';
+import { WardrobeItemData } from '@/src/types/wardrobe'; // Import WardrobeItemData
 import React from 'react';
 import { ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import WardrobeItem from './WardrobeItem'; // Import the WardrobeItem component
 
 interface CategorySectionProps {
   title: string; // Title of the category (e.g., "Hats", "Shirts")
-  items: string[]; // Array of image URIs for items in this category
+  items: WardrobeItemData[]; // Updated to WardrobeItemData[]
   // isLoading?: boolean; // Could be used to show loading state per section if needed
   onDeleteItem: (itemIndex: number) => void; // Add a callback prop for when an item in this specific category needs to be deleted
   // Add new props for outfit creation mode
@@ -49,22 +50,22 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
       {/* Use a horizontal ScrollView to display items if they exist */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.itemsScrollView}>
         {/* Map over the items array and render a WardrobeItem for each URI */}
-        {items.map((uri, index) => {
+        {items.map((itemData, index) => { // itemData is WardrobeItemData
           let isSelected = false;
           if (Array.isArray(currentOutfitSelectionForCategory)) {
-            isSelected = currentOutfitSelectionForCategory.includes(uri);
+            isSelected = currentOutfitSelectionForCategory.includes(itemData.uri); // Use itemData.uri
           } else {
-            isSelected = currentOutfitSelectionForCategory === uri;
+            isSelected = currentOutfitSelectionForCategory === itemData.uri; // Use itemData.uri
           }
           return (
             <WardrobeItem
-              key={`${title}_item_${index}_${uri.slice(0, 20)}`}
-              uri={uri}
+              key={itemData.id} // Use itemData.id for a more stable key
+              itemData={itemData} // Pass the whole itemData object
               categoryName={title}
-              onDeleteItem={() => onDeleteItem(index)}
+              onDeleteItem={() => onDeleteItem(index)} // Index is still valid for deletion from the array
               isCreatingOutfit={isCreatingOutfit}
               isSelectedForOutfit={isSelected}
-              onSelectItemForOutfit={() => onSelectItemForOutfit(uri)}
+              onSelectItemForOutfit={() => onSelectItemForOutfit(itemData.uri)} // Pass itemData.uri
               isGlobalEditModeActive={isGlobalEditModeActive}
               onToggleGlobalEditMode={onToggleGlobalEditMode}
             />

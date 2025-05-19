@@ -9,16 +9,23 @@
 // typeof CLOTHING_CATEGORIES[number] creates a union type of all possible values in CLOTHING_CATEGORIES
 export type ClothingCategory = 'hat' | 'top' | 'jacket' | 'bottom' | 'skirt' | 'shoes' | 'accessories';
 
+// Define the structure for an individual wardrobe item
+export interface WardrobeItemData {
+  id: string; // Unique identifier for the item
+  uri: string; // Image URI
+  name?: string; // Optional user-defined name
+}
+
 // Define the structure for our wardrobe items using a TypeScript interface
-// Each category will hold an array of image URIs (strings)
+// Each category will hold an array of WardrobeItemData objects
 export interface WardrobeItems {
-  hat: string[];
-  top: string[];
-  jacket: string[];
-  bottom: string[];
-  skirt: string[];
-  shoes: string[];
-  accessories: string[];
+  hat: WardrobeItemData[];
+  top: WardrobeItemData[];
+  jacket: WardrobeItemData[];
+  bottom: WardrobeItemData[];
+  skirt: WardrobeItemData[];
+  shoes: WardrobeItemData[];
+  accessories: WardrobeItemData[];
 }
 
 // Define the initial state structure for the wardrobe, ensuring all categories are present with empty arrays

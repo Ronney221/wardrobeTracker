@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { getColor, getSystemText } from '@/src/constants/theme';
+import { WardrobeItemData } from '@/src/types/wardrobe';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 
 interface WardrobeItemProps {
-  uri: string;
+  itemData: WardrobeItemData;
   categoryName: string;
   onDeleteItem: () => void;
   isCreatingOutfit: boolean;
@@ -25,7 +26,7 @@ interface WardrobeItemProps {
 }
 
 export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
-  uri,
+  itemData,
   categoryName,
   onDeleteItem,
   isCreatingOutfit,
@@ -150,7 +151,7 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
   const handleDeletePress = () => {
     Alert.alert(
       'Delete Item',
-      `Are you sure you want to delete this ${categoryName.toLowerCase()}?`,
+      `Are you sure you want to delete this ${itemData.name ? `\"${itemData.name}\" (${categoryName.toLowerCase()})` : categoryName.toLowerCase()}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -187,7 +188,14 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
       style={styles.pressableContainer}
     >
       <Animated.View style={[styles.container, wiggleAnimatedStyle, selectionAnimatedStyle]}> 
-        <Image source={{ uri: uri }} style={styles.image} resizeMode="cover" />
+        <Image source={{ uri: itemData.uri }} style={styles.image} resizeMode="cover" />
+        {itemData.name && (
+            <View style={styles.nameOverlayContainer}>
+                <ThemedText style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
+                    {itemData.name}
+                </ThemedText>
+            </View>
+        )}
         {isCreatingOutfit && (
           <Animated.View style={[styles.selectionOverlay, overlayAnimatedStyle]}>
             {isSelectedForOutfit && <ThemedText style={styles.checkmark} colorToken="textOnPinkBarbie">✓</ThemedText>}
@@ -222,6 +230,20 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  nameOverlayContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  nameText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    textAlign: 'center',
   },
   selectionOverlay: {
     ...StyleSheet.absoluteFillObject,

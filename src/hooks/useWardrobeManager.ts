@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { CLOTHING_CATEGORIES, OUTFIT_LOG_STORAGE_KEY, OUTFITS_STORAGE_KEY } from '../constants/wardrobe';
 import { loadWardrobeFromStorage, saveWardrobeToStorage } from '../services/wardrobeStorage';
-import { ClothingCategory, initialOutfitSelection, initialWardrobeState, Outfit, OutfitLogEntry, OutfitSelection, WardrobeItems } from '../types/wardrobe';
+import { ClothingCategory, initialOutfitSelection, initialWardrobeState, Outfit, OutfitLogEntry, OutfitSelection, WardrobeItemData, WardrobeItems } from '../types/wardrobe';
 
 export const useWardrobeManager = () => {
   // State for all categorized wardrobe items, initialized with the default structure
@@ -117,15 +117,21 @@ export const useWardrobeManager = () => {
   }, [isCreatingOutfit, isGlobalEditModeActive]);
 
   // Callback function to handle categorizing the pending image
-  const handleCategorizeImage = useCallback((category: ClothingCategory) => {
+  const handleCategorizeImage = useCallback((category: ClothingCategory, name?: string) => {
     if (pendingPastedImage) {
+      const newItem: WardrobeItemData = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 15), // More unique ID
+        uri: pendingPastedImage,
+        name: name || undefined, // Ensure name is explicitly undefined if empty
+      };
+
       setWardrobeItems(prevItems => ({
         ...prevItems,
-        [category]: [pendingPastedImage, ...(prevItems[category] || [])],
+        [category]: [newItem, ...(prevItems[category] || [])],
       }));
       setPendingPastedImage(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Alert.alert('Categorized!', `Image added to ${category}.`);
+      Alert.alert('Categorized!', `Item added to ${category}${name ? ` as "${name}"` : ""}.`);
     }
   }, [pendingPastedImage]);
 
@@ -280,7 +286,6 @@ export const useWardrobeManager = () => {
   const handleSuggestRandomOutfit = useCallback(() => {
     const allCategoriesEmpty = CLOTHING_CATEGORIES.every(cat => {
       const items = wardrobeItems[cat as keyof WardrobeItems];
-      // Ensure items is treated as an array, even if it could be undefined/null by mistake elsewhere
       return !items || items.length === 0;
     });
 
@@ -289,28 +294,27 @@ export const useWardrobeManager = () => {
       return;
     }
 
-    const randomSelection: OutfitSelection = initialOutfitSelection; // Start with a clean slate including accessories: []
+    const randomSelection: OutfitSelection = JSON.parse(JSON.stringify(initialOutfitSelection)); // Deep copy initial state
     let itemsSelected = 0;
 
     CLOTHING_CATEGORIES.forEach(categoryKey => {
-      // Cast categoryKey to ClothingCategory if necessary, or ensure CLOTHING_CATEGORIES maps directly to keys of WardrobeItems
       const category = categoryKey as ClothingCategory;
       const itemsInCategory = wardrobeItems[category];
 
       if (itemsInCategory && itemsInCategory.length > 0) {
         const randomIndex = Math.floor(Math.random() * itemsInCategory.length);
-        const selectedItemUri = itemsInCategory[randomIndex];
+        const selectedItem = itemsInCategory[randomIndex]; // This is WardrobeItemData
 
-        if (category === 'accessories') {
-          // For simplicity, suggest 0 or 1 accessory
-          if (Math.random() > 0.5) { // 50% chance to add an accessory
-            randomSelection.accessories = [selectedItemUri];
+        if (selectedItem && selectedItem.uri) { // Ensure selectedItem and its URI exist
+          if (category === 'accessories') {
+            if (Math.random() > 0.5) { 
+              randomSelection.accessories = [selectedItem.uri]; // Use .uri
+              itemsSelected++;
+            }
+          } else {
+            (randomSelection[category as Exclude<ClothingCategory, 'accessories'>]) = selectedItem.uri; // Use .uri
             itemsSelected++;
           }
-        } else {
-          // Explicitly cast category for assignment if OutfitSelection structure demands it
-          (randomSelection[category as Exclude<ClothingCategory, 'accessories'>] as string | null) = selectedItemUri;
-          itemsSelected++;
         }
       }
     });
