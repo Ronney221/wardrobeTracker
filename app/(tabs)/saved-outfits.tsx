@@ -17,6 +17,7 @@ export default function SavedOutfitsScreen() {
     isGlobalEditModeActive,
     toggleGlobalEditMode,
     handleDeleteOutfit,
+    wardrobeItems, // Get wardrobeItems from the hook
   } = useWardrobeManager();
 
   const insets = useSafeAreaInsets();
@@ -58,6 +59,7 @@ export default function SavedOutfitsScreen() {
               onDeleteOutfit={handleDeleteOutfit}
               isGlobalEditModeActive={isGlobalEditModeActive}
               onToggleGlobalEditMode={toggleGlobalEditMode} // Pass this down if OutfitList items can individually toggle it (currently not the case)
+              wardrobeItems={wardrobeItems} // Pass wardrobeItems to OutfitList
             />
           ) : (
             !isLoading && isInitialLoadComplete && (

@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { getColor } from '@/src/constants/theme';
-import { Outfit } from '@/src/types/wardrobe';
+import { Outfit, WardrobeItems } from '@/src/types/wardrobe';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
@@ -11,11 +11,12 @@ interface OutfitListProps {
   onDeleteOutfit: (outfitId: string) => void;
   isGlobalEditModeActive: boolean;
   onToggleGlobalEditMode: () => void;
+  wardrobeItems: WardrobeItems;
 }
 
 const snapInterval = cardWidth + (cardMarginHorizontal * 2);
 
-export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOutfit, isGlobalEditModeActive, onToggleGlobalEditMode }) => {
+export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOutfit, isGlobalEditModeActive, onToggleGlobalEditMode, wardrobeItems }) => {
   const scheme = useColorScheme() || 'light';
   const styles = getStyles(scheme);
   const showEmptyState = (!savedOutfits || savedOutfits.length === 0) && !isGlobalEditModeActive;
@@ -35,8 +36,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
   if ((!savedOutfits || savedOutfits.length === 0) && isGlobalEditModeActive) {
     return (
       <View style={styles.listContainer}>
-        <ThemedText type="subtitle" style={styles.title}>Saved Outfits</ThemedText>
-        <ThemedText style={styles.emptyText}>No outfits. (Editing)</ThemedText>
+        <ThemedText style={styles.emptyText}>No outfits to edit. Add some first!</ThemedText>
       </View>
     )
   }
@@ -54,7 +54,6 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
 
   return (
     <View style={styles.listContainer}>
-      <ThemedText type="subtitle" style={styles.title}>Saved Outfits</ThemedText>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
@@ -70,6 +69,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
             onDeleteOutfit={() => handleDelete(item.id, item.name)}
             isGlobalEditModeActive={isGlobalEditModeActive}
             onToggleGlobalEditMode={onToggleGlobalEditMode}
+            wardrobeItems={wardrobeItems}
           />
         ))}
       </ScrollView>
@@ -79,7 +79,7 @@ export const OutfitList: React.FC<OutfitListProps> = ({ savedOutfits, onDeleteOu
 
 const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
   listContainer: {
-    marginTop: 20,
+    marginTop: 0,
   },
   carouselScrollView: {
   },

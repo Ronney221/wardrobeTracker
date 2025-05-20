@@ -120,7 +120,7 @@ export default function WardrobeScreen() {
                   </ThemedText>
                   <View style={{ width: styles.backButton.padding * 2 + 24 }} />
                 </View>
-                <View style={styles.actionButtonsContainer}> {/* This container now only has Save and Suggest */}
+                <View style={styles.actionButtonsContainer}>
                   <TouchableOpacity style={[styles.button, styles.suggestButton]} onPress={handleSuggestRandomOutfit}>
                       <FontAwesome name="random" size={20} color={getColor('textOnPinkBarbie', scheme)} />
                       <ThemedText style={styles.buttonText} colorToken="textOnPinkBarbie">Suggest Random</ThemedText>

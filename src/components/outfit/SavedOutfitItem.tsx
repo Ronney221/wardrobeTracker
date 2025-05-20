@@ -1,18 +1,18 @@
 import { ThemedText } from '@/components/ThemedText';
 import { getColor, getSystemText } from '@/src/constants/theme';
-import { FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Easing, Image, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import { CLOTHING_CATEGORIES } from '../../constants/wardrobe';
-import { ClothingCategory, Outfit } from '../../types/wardrobe';
+import { ClothingCategory, Outfit, WardrobeItemData, WardrobeItems } from '../../types/wardrobe';
 
 interface SavedOutfitItemProps {
   outfit: Outfit;
   onDeleteOutfit: () => void;
   isGlobalEditModeActive: boolean;
   onToggleGlobalEditMode: () => void;
+  wardrobeItems: WardrobeItems;
 }
 
 const CategoryDisplayOrder: readonly ClothingCategory[] = CLOTHING_CATEGORIES;
@@ -31,6 +31,7 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
   onDeleteOutfit,
   isGlobalEditModeActive,
   onToggleGlobalEditMode,
+  wardrobeItems,
 }) => {
   const router = useRouter();
   const scheme = useColorScheme() || 'light';
@@ -40,98 +41,44 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
 
   useEffect(() => {
     if (isGlobalEditModeActive) {
-      if (loopAnimation.current) {
-        loopAnimation.current.stop();
-      }
+      if (loopAnimation.current) loopAnimation.current.stop();
       loopAnimation.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(rotationAnim, { 
-            toValue: 1, 
-            duration: 100,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotationAnim, {
-            toValue: -1, 
-            duration: 100,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotationAnim, {
-            toValue: 1,
-            duration: 100,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotationAnim, {
-            toValue: -1,
-            duration: 100,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotationAnim, {
-            toValue: 0, 
-            duration: 100,
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
+          Animated.timing(rotationAnim, { toValue: 1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(rotationAnim, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(rotationAnim, { toValue: 1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(rotationAnim, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(rotationAnim, { toValue: 0, duration: 100, easing: Easing.linear, useNativeDriver: true }),
           Animated.delay(1000), 
         ])
       );
       loopAnimation.current.start();
     } else {
-      if (loopAnimation.current) {
-        loopAnimation.current.stop();
-        loopAnimation.current = null;
-      }
-      Animated.spring(rotationAnim, { 
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 200,
-        damping: 20,
-      }).start();
+      if (loopAnimation.current) loopAnimation.current.stop();
+      loopAnimation.current = null;
+      Animated.spring(rotationAnim, { toValue: 0, useNativeDriver: true, stiffness: 200, damping: 20 }).start();
     }
-
     return () => {
-      if (loopAnimation.current) {
-        loopAnimation.current.stop();
-        loopAnimation.current = null;
-      }
-      rotationAnim.stopAnimation();
-      rotationAnim.setValue(0);
+      if (loopAnimation.current) loopAnimation.current.stop();
+      rotationAnim.stopAnimation(); rotationAnim.setValue(0);
     };
   }, [isGlobalEditModeActive, rotationAnim]);
 
-  const animatedStyle = {
-    transform: [
-      {
-        rotate: rotationAnim.interpolate({
-          inputRange: [-1, 1],
-          outputRange: ['-1.5deg', '1.5deg'],
-        }),
-      },
-    ],
-  };
+  const animatedStyle = { transform: [{ rotate: rotationAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-1.5deg', '1.5deg'] }) }] };
 
   const handlePress = () => {
-    console.log(`[SavedOutfitItem] Handle Press - Edit Mode: ${isGlobalEditModeActive}, Outfit ID: ${outfit.id}`);
     if (isGlobalEditModeActive) {
-      console.log("[SavedOutfitItem] Calling onDeleteOutfit");
-      onDeleteOutfit();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onDeleteOutfit(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      console.log("[SavedOutfitItem] Navigating to detail view for outfit ID:", outfit.id);
-      router.push({
-        pathname: '/outfit/[id]',
-        params: { id: outfit.id },
-      });
-      console.log("[SavedOutfitItem] Navigation initiated with ID only.");
+      router.push({ pathname: '/outfit/[id]', params: { id: outfit.id } });
     }
   };
 
-  const handleLongPress = () => {
-    console.log(`[SavedOutfitItem] Handle Long Press - Outfit ID: ${outfit.id}`);
-    onToggleGlobalEditMode();
+  const handleLongPress = () => { onToggleGlobalEditMode(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); };
+
+  const getItemDataById = (categoryId: ClothingCategory, itemId: string): WardrobeItemData | undefined => {
+    const categoryItems = wardrobeItems[categoryId];
+    return categoryItems?.find(item => item.id === itemId);
   };
 
   return (
@@ -139,7 +86,6 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
       <Animated.View style={[styles.cardContainer, animatedStyle]}>
         <ThemedText type="subtitle" style={styles.outfitName}>{outfit.name}</ThemedText>
         
-        {/* Delete indicator for global edit mode */} 
         {isGlobalEditModeActive && (
           <View style={styles.deleteIconContainer}>
             <ThemedText type="defaultSemiBold" style={[styles.deleteIconText, { color: getSystemText('systemDestructive', scheme) }]}>✕</ThemedText>
@@ -148,29 +94,65 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
 
         <View style={styles.mannequinContainer}>
           {CategoryDisplayOrder.map((category) => {
-            const categoryItems = outfit[category]; // Can be string | null, or string[] | null for accessories
+            const categoryValue = outfit[category]; 
+            let itemsToDisplay: WardrobeItemData[] = [];
+
+            // Handle legacy direct string URIs first
+            if (typeof categoryValue === 'string') {
+              const strCategoryValue: string = categoryValue; // Explicitly typed new variable
+              // Ensure the string is a valid URI format we can display
+              if (strCategoryValue.startsWith('data:') || strCategoryValue.startsWith('http') || strCategoryValue.startsWith('file:')) {
+                itemsToDisplay = [{ id: strCategoryValue, uri: strCategoryValue, name: 'Legacy Item (Direct URI)' }];
+              }
+            } else if (Array.isArray(categoryValue) && categoryValue.length > 0) { 
+              // Handle new format (array of IDs or URIs)
+              itemsToDisplay = categoryValue.map(idOrUri => {
+                if (typeof idOrUri !== 'string') { // Ensure elements in the array are strings
+                  return undefined; 
+                }
+
+                // Check if it's a data URI (e.g., pasted image)
+                if (idOrUri.startsWith('data:')) {
+                  return { id: idOrUri, uri: idOrUri, name: 'Pasted Item' };
+                }
+
+                // Try to find the item by ID in the wardrobe
+                const itemDataFromId = getItemDataById(category, idOrUri);
+                if (itemDataFromId) {
+                  return itemDataFromId;
+                }
+
+                // Fallback for other string URIs (http, file) not found by ID
+                // This handles cases where an array might contain direct URIs
+                if (idOrUri.startsWith('http') || idOrUri.startsWith('file:')) {
+                  return { id: idOrUri, uri: idOrUri, name: 'Legacy Array URI' };
+                }
+                
+                return undefined; 
+              }).filter(item => item !== undefined && item.uri) as WardrobeItemData[];
+            }
+
+            // If no items to display for this category, don't render the slot
+            if (itemsToDisplay.length === 0) {
+              return null;
+            }
 
             return (
               <View key={category} style={styles.categorySlot}>
-                {category === 'accessories' && Array.isArray(categoryItems) && categoryItems.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accessoryScrollContainer}>
-                    {categoryItems.map((accUri, index) => (
-                      <Image 
-                        key={`${accUri}-${index}`} 
-                        source={{ uri: accUri }} 
-                        style={styles.accessoryItemImage} 
-                        resizeMode="contain" 
-                      />
-                    ))}
-                  </ScrollView>
-                ) : typeof categoryItems === 'string' && categoryItems ? (
-                  <Image source={{ uri: categoryItems }} style={styles.itemImage} resizeMode="contain" />
-                ) : (
-                  <View style={styles.itemPlaceholderContainer}>
-                    {/* Render a generic placeholder icon instead of text */}
-                    <FontAwesome5 name="question-circle" size={30} color={getColor('textDisabled', scheme)} />
-                  </View>
-                )}
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={styles.itemsScrollContainer}
+                >
+                  {itemsToDisplay.map((itemData) => (
+                    <Image 
+                      key={itemData.id} 
+                      source={{ uri: itemData.uri }} 
+                      style={styles.itemImageInScroll} 
+                      resizeMode="contain" 
+                    />
+                  ))}
+                </ScrollView>
               </View>
             );
           })}
@@ -236,28 +218,22 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
     borderWidth: 1,
     borderColor: getColor('borderSubtle', scheme),
   },
-  itemImage: {
-    width: '100%',
-    height: '100%', 
-    borderRadius: 6,
-  },
-  accessoryScrollContainer: { // New style for horizontal scroll of accessories
+  itemsScrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+    height: '100%',
   },
-  accessoryItemImage: { // New style for individual accessory images
-    width: 50, // Fixed size for accessories
-    height: 50,
+  itemImageInScroll: {
+    width: 60,
+    height: 60,
     borderRadius: 4,
-    marginHorizontal: 4, // Add some spacing between accessory items
-    backgroundColor: getColor('bgScreen', scheme), // Changed from bgSubtle to bgScreen
+    marginHorizontal: 4,
+    backgroundColor: getColor('bgScreen', scheme),
   },
-  itemPlaceholderContainer: { // Style for the placeholder container
+  itemPlaceholderContainer: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 }); 
