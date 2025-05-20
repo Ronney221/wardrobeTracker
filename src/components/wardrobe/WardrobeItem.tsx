@@ -4,20 +4,19 @@ import { WardrobeItemData } from '@/src/types/wardrobe';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   Image,
   Pressable,
   StyleSheet,
   View,
-  useColorScheme,
+  useColorScheme
 } from 'react-native';
 
 interface WardrobeItemProps {
   itemData: WardrobeItemData;
   categoryName: string;
-  onDeleteItem: () => void;
+  onEdit: () => void;
   isCreatingOutfit: boolean;
   isSelectedForOutfit: boolean;
   onSelectItemForOutfit: () => void;
@@ -28,7 +27,7 @@ interface WardrobeItemProps {
 export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
   itemData,
   categoryName,
-  onDeleteItem,
+  onEdit,
   isCreatingOutfit,
   isSelectedForOutfit,
   onSelectItemForOutfit,
@@ -148,40 +147,10 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
     ]
   };
 
-  const handleDeletePress = () => {
-    let itemDisplayName = categoryName.toLowerCase();
-    if (itemData.name) {
-      itemDisplayName = `\"${itemData.name}\"`;
-      if (itemData.subcategory) {
-        itemDisplayName += ` (${itemData.subcategory}, ${categoryName.toLowerCase()})`;
-      } else {
-        itemDisplayName += ` (${categoryName.toLowerCase()})`;
-      }
-    } else if (itemData.subcategory) {
-      itemDisplayName = `${categoryName.toLowerCase()} (${itemData.subcategory})`;
-    }
-
-    Alert.alert(
-      'Delete Item',
-      `Are you sure you want to delete this ${itemDisplayName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          onPress: () => {
-            onDeleteItem();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          },
-          style: 'destructive',
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  const handleItemPress = () => {
+  const handlePress = () => {
     if (isGlobalEditModeActive) {
-      handleDeletePress();
+      onEdit();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else if (isCreatingOutfit) {
       onSelectItemForOutfit();
     }
@@ -195,7 +164,7 @@ export const WardrobeItem: React.FC<WardrobeItemProps> = React.memo(({
 
   return (
     <Pressable 
-      onPress={handleItemPress} 
+      onPress={handlePress} 
       onLongPress={handleItemLongPress}
       style={styles.pressableContainer}
     >

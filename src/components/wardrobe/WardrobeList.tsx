@@ -4,15 +4,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'; // Import icons
 import React from 'react';
 import { StyleSheet, View, useColorScheme } from 'react-native'; // Removed Text, Added useColorScheme
 import { CLOTHING_CATEGORIES } from '../../constants/wardrobe'; // Import clothing categories constant
-import { ClothingCategory, OutfitSelection, WardrobeItems } from '../../types/wardrobe'; // Import WardrobeItems type and ClothingCategory
+import { ClothingCategory, OutfitSelection, WardrobeItemData, WardrobeItems } from '../../types/wardrobe'; // Import WardrobeItems type and ClothingCategory
 import CategorySection from './CategorySection'; // Import the CategorySection component
 
-interface WardrobeListProps {
-  wardrobeItems: WardrobeItems; // The object containing all categorized items
+export interface WardrobeListProps {
+  wardrobeItems: WardrobeItems;
   pendingPastedImage: string | null; // To know if an item is pending, affecting empty state logic
   isLoading: boolean; // To know if data is currently being loaded
-  // Add a callback prop for deleting an item, specifying category and index
-  onDeleteItem: (category: ClothingCategory, itemId: string) => void;
   // Add new props for outfit creation mode
   isCreatingOutfit: boolean;
   currentOutfitSelection: OutfitSelection;
@@ -20,19 +18,19 @@ interface WardrobeListProps {
   // Add new props for global edit mode
   isGlobalEditModeActive: boolean;
   onToggleGlobalEditMode: () => void;
+  onTriggerEditItem: (item: WardrobeItemData, category: ClothingCategory) => void;
 }
 
 const WardrobeList: React.FC<WardrobeListProps> = ({ 
   wardrobeItems, 
   pendingPastedImage, 
   isLoading, 
-  onDeleteItem, 
   isCreatingOutfit, 
   currentOutfitSelection, 
   onSelectItemForOutfit, 
-  // Destructure new props
   isGlobalEditModeActive,
-  onToggleGlobalEditMode
+  onToggleGlobalEditMode,
+  onTriggerEditItem
 }) => {
   const scheme = useColorScheme() || 'light';
   const styles = getStyles(scheme);
@@ -68,7 +66,7 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
                   key={category}
                   title={category.charAt(0).toUpperCase() + category.slice(1)}
                   items={itemsForCategory}
-                  onDeleteItem={(itemId) => onDeleteItem(category, itemId)}
+                  onTriggerEditItem={(item) => onTriggerEditItem(item, category as ClothingCategory)}
                   isCreatingOutfit={isCreatingOutfit}
                   currentOutfitSelectionForCategory={selectionForCategory}
                   onSelectItemForOutfit={(itemId) => onSelectItemForOutfit(category, itemId)}

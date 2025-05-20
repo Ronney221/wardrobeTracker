@@ -9,10 +9,9 @@ interface CategorySectionProps {
   title: string; // Title of the category (e.g., "Hats", "Shirts")
   items: WardrobeItemData[]; // Updated to WardrobeItemData[]
   // isLoading?: boolean; // Could be used to show loading state per section if needed
-  onDeleteItem: (itemId: string) => void; // Changed to take itemId
-  // Add new props for outfit creation mode
+  onTriggerEditItem: (item: WardrobeItemData) => void; // New prop for editing
   isCreatingOutfit: boolean;
-  currentOutfitSelectionForCategory: readonly string[] | null | undefined; // Updated type, allowing undefined
+  currentOutfitSelectionForCategory: string[] | null; // Updated for multi-select
   onSelectItemForOutfit: (itemId: string) => void; // Changed to take itemId
   // Add new props for global edit mode
   isGlobalEditModeActive: boolean;
@@ -31,7 +30,7 @@ const groupItemsBySubcategory = (items: WardrobeItemData[]): Record<string, Ward
   }, {} as Record<string, WardrobeItemData[]>);
 };
 
-const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDeleteItem, isCreatingOutfit, currentOutfitSelectionForCategory, onSelectItemForOutfit, isGlobalEditModeActive, onToggleGlobalEditMode }) => {
+const CategorySection: React.FC<CategorySectionProps> = ({ title, items, isCreatingOutfit, currentOutfitSelectionForCategory, onSelectItemForOutfit, isGlobalEditModeActive, onToggleGlobalEditMode, onTriggerEditItem }) => {
   const scheme = useColorScheme() || 'light';
   const styles = getStyles(scheme);
 
@@ -89,7 +88,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ title, items, onDelet
                     key={itemData.id}
                     itemData={itemData}
                     categoryName={title} // Main category title
-                    onDeleteItem={() => onDeleteItem(itemData.id)} // Pass itemData.id
+                    onEdit={() => onTriggerEditItem(itemData)} // Pass the item to edit trigger
                     isCreatingOutfit={isCreatingOutfit}
                     isSelectedForOutfit={isSelected}
                     onSelectItemForOutfit={() => onSelectItemForOutfit(itemData.id)} // Pass itemData.id

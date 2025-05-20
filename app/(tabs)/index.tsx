@@ -1,5 +1,5 @@
 import { FontAwesome } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     ActivityIndicator,
     SafeAreaView,
@@ -20,9 +20,11 @@ import { getColor } from '@/src/constants/theme'; // Adjusted path
 // Import the custom hook that manages all wardrobe logic
 import { useWardrobeManager } from '@/src/context/WardrobeContext'; // Updated import
 // Import the UI components we created
+import { EditItemModal } from '@/src/components/wardrobe/EditItemModal'; // Import EditItemModal
 import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Corrected import style
 import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Corrected import style
 import { CLOTHING_CATEGORIES } from '@/src/constants/wardrobe';
+import { ClothingCategory, WardrobeItemData } from '@/src/types/wardrobe'; // Ensure WardrobeItemData is imported
 
 // Main functional component for the Wardrobe Screen
 export default function WardrobeScreen() {
@@ -45,11 +47,43 @@ export default function WardrobeScreen() {
     handleAddSubcategory,
     isCreatingOutfit,
     toggleOutfitCreationMode,
+    handleUpdateWardrobeItemDetails, // Get the new handler
   } = useWardrobeManager();
 
   const insets = useSafeAreaInsets(); // Get insets
   const scheme = useColorScheme() ?? 'light';
   const styles = getStyles(scheme, insets.bottom);
+
+  // State for EditItemModal
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<WardrobeItemData | null>(null);
+  const [editingItemOriginalCategory, setEditingItemOriginalCategory] = useState<ClothingCategory | null>(null);
+
+  const handleOpenEditModal = (item: WardrobeItemData, category: ClothingCategory) => {
+    setItemToEdit(item);
+    setEditingItemOriginalCategory(category);
+    setIsEditModalVisible(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalVisible(false);
+    setItemToEdit(null);
+    setEditingItemOriginalCategory(null);
+  };
+
+  const handleSaveChangesFromModal = (itemId: string, newName: string, newSubcategory: string) => {
+    if (editingItemOriginalCategory) { // Ensure category is not null
+        handleUpdateWardrobeItemDetails(editingItemOriginalCategory, itemId, newName, newSubcategory);
+    }
+    handleCloseEditModal();
+  };
+
+  const handleDeleteFromModal = (itemId: string) => {
+    if (editingItemOriginalCategory) { // Ensure category is not null before calling delete
+        handleDeleteItem(editingItemOriginalCategory, itemId); 
+    }
+    handleCloseEditModal(); 
+  };
 
   // Determine if the main wardrobe view (collections, outfits, actions) should be shown
   const showMainWardrobeView = !pendingPastedImage && !isCreatingOutfit;
@@ -134,7 +168,7 @@ export default function WardrobeScreen() {
             {!pendingPastedImage && wardrobeItems && (showMainWardrobeView || isCreatingOutfit) && (
               <WardrobeList
                 wardrobeItems={wardrobeItems}
-                onDeleteItem={handleDeleteItem}
+                onTriggerEditItem={handleOpenEditModal} // Pass new handler for editing
                 isCreatingOutfit={isCreatingOutfit}
                 currentOutfitSelection={currentOutfitSelection}
                 onSelectItemForOutfit={handleSelectItemForOutfit}
@@ -161,6 +195,18 @@ export default function WardrobeScreen() {
           </View>
         )}
       </ThemedView>
+      {itemToEdit && editingItemOriginalCategory && (
+        <EditItemModal
+            isVisible={isEditModalVisible}
+            onClose={handleCloseEditModal}
+            itemToEdit={itemToEdit}
+            originalCategory={editingItemOriginalCategory}
+            onSaveChanges={handleSaveChangesFromModal}
+            onDeleteItem={handleDeleteFromModal} // Pass the specific delete handler for the modal
+            userSubcategories={userSubcategories || {}} // Ensure not null
+            onAddSubcategory={handleAddSubcategory}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -323,6 +323,28 @@ export const useWardrobeManager = () => {
     // No alert here, UI should reflect change, or calling component can alert if needed
   }, []);
 
+  const handleUpdateWardrobeItemDetails = useCallback((originalCategory: ClothingCategory, itemId: string, newName: string, newSubcategory: string) => {
+    setWardrobeItems(prevItems => {
+      const categoryItems = prevItems[originalCategory] || [];
+      const updatedItems = categoryItems.map(item => {
+        if (item.id === itemId) {
+          return { 
+            ...item, 
+            name: newName.trim() || item.name, // Keep original name if new one is empty
+            subcategory: newSubcategory.trim() || undefined // Set to undefined if empty
+          };
+        }
+        return item;
+      });
+      return {
+        ...prevItems,
+        [originalCategory]: updatedItems,
+      };
+    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Alert.alert("Item Updated", "The item details have been saved."); // Optional: can be handled by UI
+  }, []);
+
   // --- Global Edit Mode Handler ---
   const toggleGlobalEditMode = useCallback(() => {
     setIsGlobalEditModeActive(prev => !prev);
@@ -444,5 +466,6 @@ export const useWardrobeManager = () => {
     handleAddSubcategory,
     toggleOutfitCreationMode,
     handleUpdateOutfitNotes,
+    handleUpdateWardrobeItemDetails,
   };
 }; 

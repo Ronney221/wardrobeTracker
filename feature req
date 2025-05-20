@@ -6,8 +6,7 @@
 Outfit Data Structure: Outfit and OutfitSelection still store item URIs. We might eventually want them to store WardrobeItemData (or at least id and uri) to more easily access names/subcategories of items within an outfit. This is a larger refactor for how outfits are handled.
 
 
-require unique naming
-populate saved outfits sorted by most recently added 
+
 
 add albums to your saved outfits and favorites
 
