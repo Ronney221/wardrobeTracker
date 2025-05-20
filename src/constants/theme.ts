@@ -30,7 +30,11 @@ export type ColorToken =
   | 'buttonSecondary'
   | 'systemError'
   | 'systemInfo'
-  | 'bgDisabled';
+  | 'bgDisabled'
+  | 'bgElevated'
+  | 'bgMuted'
+  | 'accentGreen'
+  | 'textOnAccentGreen';
 
 export type ColorScheme = 'light' | 'dark';
 
@@ -48,6 +52,8 @@ const lightPaletteValues: ThemePalette = {
   textOnPinkBarbie: '#FFFFFF',
   bgScreen: '#FFFFFF',
   bgCard: '#FDFDFD',
+  bgElevated: '#F8F8F8',
+  bgMuted: '#F0F0F0',
   border: '#E0E0E0',
   borderSubtle: '#F0F0F0',
   iconPrimary: '#E30B5C',
@@ -63,7 +69,9 @@ const lightPaletteValues: ThemePalette = {
   systemDestructive: '#D32F2F',
   pinkBarbieTransparent: 'rgba(255, 105, 180, 0.1)',
   accentMagenta: '#A521E0',
+  accentGreen: '#2ECC71',
   textOnAccent: '#FFFFFF',
+  textOnAccentGreen: '#FFFFFF',
   textOnSystem: '#1E0311',
   shadowDefault: 'rgba(93,16,73,0.15)',
   shadowMagentaStrong: '#B0126B',
@@ -80,6 +88,8 @@ const darkPaletteValues: ThemePalette = {
   textOnPinkBarbie: '#000000',
   bgScreen: '#121212',
   bgCard: '#1E1E1E',
+  bgElevated: '#242424',
+  bgMuted: '#2C2C2C',
   border: '#424242',
   borderSubtle: '#2C2C2C',
   iconPrimary: '#F32B7C',
@@ -95,7 +105,9 @@ const darkPaletteValues: ThemePalette = {
   systemDestructive: '#EF5350',
   pinkBarbieTransparent: 'rgba(255, 133, 196, 0.1)',
   accentMagenta: '#C758F0',
+  accentGreen: '#52D689',
   textOnAccent: '#1E0311',
+  textOnAccentGreen: '#000000',
   textOnSystem: '#1E0311',
   shadowDefault: 'rgba(0,0,0,0.5)',
   shadowMagentaStrong: '#8C1BAF',

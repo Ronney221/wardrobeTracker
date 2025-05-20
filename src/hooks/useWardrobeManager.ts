@@ -312,6 +312,17 @@ export const useWardrobeManager = () => {
     // Consider if an Alert confirming deletion is needed here or if it's handled by the calling component.
   }, []); // Dependencies are empty as setSavedOutfits with a functional update is stable.
 
+  const handleUpdateOutfitNotes = useCallback((outfitId: string, newNotes: string) => {
+    setSavedOutfits(prevOutfits => 
+      prevOutfits.map(outfit => 
+        outfit.id === outfitId ? { ...outfit, notes: newNotes.trim() } : outfit
+      )
+    );
+    // The useEffect for savedOutfits will persist this change.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // No alert here, UI should reflect change, or calling component can alert if needed
+  }, []);
+
   // --- Global Edit Mode Handler ---
   const toggleGlobalEditMode = useCallback(() => {
     setIsGlobalEditModeActive(prev => !prev);
@@ -432,5 +443,6 @@ export const useWardrobeManager = () => {
     userSubcategories,
     handleAddSubcategory,
     toggleOutfitCreationMode,
+    handleUpdateOutfitNotes,
   };
 }; 
