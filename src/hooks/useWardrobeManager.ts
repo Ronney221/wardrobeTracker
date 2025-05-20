@@ -146,9 +146,8 @@ export const useWardrobeManager = () => {
     }
   }, [pendingPastedImage]);
 
-  // New function to handle deleting an item
-  const handleDeleteItem = useCallback((category: ClothingCategory, itemIndex: number) => {
-    // Confirmation dialog before deleting
+  // Updated function to handle deleting an item by ID
+  const handleDeleteItem = useCallback((category: ClothingCategory, itemId: string) => {
     Alert.alert(
       "Confirm Delete",
       "Are you sure you want to delete this item?",
@@ -162,25 +161,43 @@ export const useWardrobeManager = () => {
           style: "destructive",
           onPress: () => {
             setWardrobeItems(prevItems => {
-              // Get the current list of items for the specified category
               const itemsInCategory = prevItems[category] || [];
-              // Filter out the item at the given index
-              const updatedItemsInCategory = itemsInCategory.filter((_, index) => index !== itemIndex);
-              // Return the new state with the updated category list
+              // Filter out the item by its ID
+              const updatedItemsInCategory = itemsInCategory.filter(item => item.id !== itemId);
               const newWardrobeItems = {
                 ...prevItems,
                 [category]: updatedItemsInCategory,
               };
-              saveWardrobeToStorage(newWardrobeItems);
+              // saveWardrobeToStorage(newWardrobeItems); // Save is handled by useEffect on wardrobeItems
               return newWardrobeItems;
             });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert("Deleted", "Item removed from your collection.");
+            // Also remove from any saved outfits if it was part of one
+            setSavedOutfits(prevOutfits => 
+              prevOutfits.map(outfit => {
+                const updatedOutfit = { ...outfit };
+                let outfitModified = false;
+                if (Array.isArray(outfit[category]) && (outfit[category] as string[]).includes(itemId)) {
+                  updatedOutfit[category] = (outfit[category] as string[]).filter(id => id !== itemId);
+                  outfitModified = true;
+                }
+                return outfitModified ? updatedOutfit : outfit;
+              }).filter(outfit => {
+                // Remove outfit if it becomes empty after deleting an item
+                // (Optional: or keep it and let user decide later)
+                const hasItems = CLOTHING_CATEGORIES.some(cat => 
+                  Array.isArray(outfit[cat]) && (outfit[cat] as string[]).length > 0
+                );
+                return hasItems;
+              })
+            );
+
           }
         }
       ]
     );
-  }, []); // No dependencies needed as it uses setWardrobeItems updater form
+  }, []); // No explicit dependencies, setWardrobeItems and setSavedOutfits use functional updates
 
   // --- Outfit Handler Functions ---
   const toggleOutfitCreationMode = useCallback(() => {
@@ -194,37 +211,37 @@ export const useWardrobeManager = () => {
     }
   }, [isGlobalEditModeActive, isCreatingOutfit]);
 
-  const handleSelectItemForOutfit = useCallback((category: ClothingCategory, itemUri: string) => {
-    if (!isCreatingOutfit) return; // Should not happen if UI is correct
+  const handleSelectItemForOutfit = useCallback((category: ClothingCategory, itemId: string) => {
+    if (!isCreatingOutfit) return;
 
     setCurrentOutfitSelection(prevSelection => {
-      const newSelection = { ...prevSelection };
-      const currentCategorySelection = prevSelection[category];
+      // Ensure we're working with an array, defaulting to empty if undefined or null
+      const currentSelectedIds = Array.isArray(prevSelection[category]) ? prevSelection[category] as string[] : [];
+      let newSelectedIds: string[];
 
-      if (category === 'accessories') {
-        const currentAccessories = (currentCategorySelection || []) as string[];
-        if (currentAccessories.includes(itemUri)) {
-          newSelection.accessories = currentAccessories.filter(uri => uri !== itemUri);
-        } else {
-          newSelection.accessories = [...currentAccessories, itemUri];
-        }
+      if (currentSelectedIds.includes(itemId)) {
+        // Item is already selected, remove it
+        newSelectedIds = currentSelectedIds.filter(id => id !== itemId);
       } else {
-        // For other categories, toggle selection (or select if null)
-        newSelection[category] = currentCategorySelection === itemUri ? null : itemUri;
+        // Item is not selected, add it
+        newSelectedIds = [...currentSelectedIds, itemId];
       }
-      return newSelection;
+      
+      return {
+        ...prevSelection,
+        [category]: newSelectedIds, // Store the array (can be empty, matching initialOutfitSelection)
+      };
     });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [isCreatingOutfit]);
 
   const handleSaveCurrentOutfit = useCallback(() => {
-    // Check if at least one item is selected (including accessories)
-    const isAnySingleItemSelected = Object.entries(currentOutfitSelection)
-      .filter(([key]) => key !== 'accessories')
-      .some(([,uri]) => uri !== null && uri !== undefined);
-    
-    const accessoriesSelected = currentOutfitSelection.accessories && currentOutfitSelection.accessories.length > 0;
+    // Updated check for empty outfit: at least one item in any category array
+    const isAnyItemSelected = Object.values(currentOutfitSelection).some(
+      (selectedIds) => Array.isArray(selectedIds) && selectedIds.length > 0
+    );
 
-    if (!isAnySingleItemSelected && !accessoriesSelected) {
+    if (!isAnyItemSelected) {
       Alert.alert("Empty Outfit", "Please select at least one item for the outfit.");
       return;
     }
@@ -244,12 +261,10 @@ export const useWardrobeManager = () => {
             const newOutfit: Outfit = {
               id: Date.now().toString(),
               name: outfitName.trim(),
-              // Explicitly type the selection before spreading for safety with new structure
-              ...currentOutfitSelection as OutfitSelection,
-              // Ensure accessories is an array or null, even if currentOutfitSelection.accessories is undefined
-              accessories: currentOutfitSelection.accessories || [], 
+              ...(currentOutfitSelection as OutfitSelection), // Spread the selection which now matches Outfit structure
             };
-            setSavedOutfits(prevOutfits => [newOutfit, ...prevOutfits]); // Add to the beginning
+
+            setSavedOutfits(prevOutfits => [...prevOutfits, newOutfit]);
             setCurrentOutfitSelection(initialOutfitSelection); // Reset selection
             setIsCreatingOutfit(false); // Exit outfit creation mode
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -285,37 +300,23 @@ export const useWardrobeManager = () => {
 
   // --- Suggest Random Outfit Handler ---
   const handleSuggestRandomOutfit = useCallback(() => {
-    const allCategoriesEmpty = CLOTHING_CATEGORIES.every(cat => {
-      const items = wardrobeItems[cat as keyof WardrobeItems];
-      return !items || items.length === 0;
-    });
-
-    if (allCategoriesEmpty) {
-      Alert.alert("No Items", "Your wardrobe is empty. Add some items to get outfit suggestions.");
+    if (Object.values(wardrobeItems).every(categoryItems => categoryItems.length === 0)) {
+      Alert.alert("Empty Wardrobe", "Add some items to your wardrobe to get suggestions!");
       return;
     }
 
-    const randomSelection: OutfitSelection = JSON.parse(JSON.stringify(initialOutfitSelection)); // Deep copy initial state
+    const randomSelection: OutfitSelection = { ...initialOutfitSelection }; // Initialize with empty arrays
     let itemsSelected = 0;
 
-    CLOTHING_CATEGORIES.forEach(categoryKey => {
-      const category = categoryKey as ClothingCategory;
+    CLOTHING_CATEGORIES.forEach(category => {
       const itemsInCategory = wardrobeItems[category];
-
       if (itemsInCategory && itemsInCategory.length > 0) {
         const randomIndex = Math.floor(Math.random() * itemsInCategory.length);
-        const selectedItem = itemsInCategory[randomIndex]; // This is WardrobeItemData
-
-        if (selectedItem && selectedItem.uri) { // Ensure selectedItem and its URI exist
-          if (category === 'accessories') {
-            if (Math.random() > 0.5) { 
-              randomSelection.accessories = [selectedItem.uri]; // Use .uri
-              itemsSelected++;
-            }
-          } else {
-            (randomSelection[category as Exclude<ClothingCategory, 'accessories'>]) = selectedItem.uri; // Use .uri
-            itemsSelected++;
-          }
+        const selectedItem = itemsInCategory[randomIndex];
+        if (selectedItem) {
+          // All categories now expect string[], so assign [selectedItem.id]
+          randomSelection[category] = [selectedItem.id]; 
+          itemsSelected++;
         }
       }
     });

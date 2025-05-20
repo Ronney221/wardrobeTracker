@@ -1,3 +1,4 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -31,6 +32,13 @@ export default function TabLayout() {
         options={{
           title: 'Wardrobe',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="hanger" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="saved-outfits"
+        options={{
+          title: 'Outfits',
+          tabBarIcon: ({ color, size }) => <FontAwesome5 name="archive" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

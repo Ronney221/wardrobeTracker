@@ -41,21 +41,22 @@ export const initialWardrobeState: WardrobeItems = {
 // --- Outfit Types ---
 
 // Represents the items selected for a single outfit.
-export interface Outfit extends Partial<Record<Exclude<ClothingCategory, 'accessories'>, string | null>> {
+export interface Outfit {
   id: string;
   name: string;
-  accessories: string[] | null; // Accessories can be multiple, all other categories are single string|null via Record
-  // top, bottom, outerwear, shoes are covered by the Record
-  // hat, jacket, skirt are no longer top-level outfit categories
   notes?: string; 
+  top?: string[] | null;        // Changed from string | null, now optional
+  bottom?: string[] | null;    // Changed from string | null, now optional
+  outerwear?: string[] | null; // Changed from string | null, now optional
+  shoes?: string[] | null;     // Changed from string | null, now optional
+  accessories?: string[] | null; // Was already string[] | null, now optional for consistency
 }
 
 // For selecting items for an outfit
-export interface OutfitSelection extends Partial<Record<Exclude<ClothingCategory, 'accessories'>, string | null>> {
-  // top, bottom, outerwear, shoes are covered by the Record
-  // hat, jacket, skirt are no longer top-level outfit categories
-  accessories?: string[] | null; 
-}
+export type OutfitSelection = {
+  // All categories are now optional and can hold an array of item IDs or null.
+  [K in ClothingCategory]?: string[] | null;
+};
 
 // New type for logging when an outfit was worn
 export interface OutfitLogEntry {
@@ -66,12 +67,11 @@ export interface OutfitLogEntry {
 
 // Initial state for an outfit selection process
 export const initialOutfitSelection: OutfitSelection = {
-  top: null,
-  bottom: null,
-  outerwear: null,
-  shoes: null,
+  top: [], // Initialize with empty arrays
+  bottom: [],
+  outerwear: [],
+  shoes: [],
   accessories: [], 
-  // hat, jacket, skirt are removed
 }; 
 
 // Type for storing user-defined subcategories

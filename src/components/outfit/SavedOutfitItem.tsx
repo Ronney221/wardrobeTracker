@@ -1,9 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
 import { getColor, getSystemText } from '@/src/constants/theme';
+import { FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, Image, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
+import { Animated, Dimensions, Easing, Image, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import { CLOTHING_CATEGORIES } from '../../constants/wardrobe';
 import { ClothingCategory, Outfit } from '../../types/wardrobe';
 
@@ -147,19 +148,27 @@ export const SavedOutfitItem: React.FC<SavedOutfitItemProps> = ({
 
         <View style={styles.mannequinContainer}>
           {CategoryDisplayOrder.map((category) => {
-            const itemUri = outfit[category];
-            const isItemUriString = typeof itemUri === 'string';
+            const categoryItems = outfit[category]; // Can be string | null, or string[] | null for accessories
+
             return (
               <View key={category} style={styles.categorySlot}>
-                {isItemUriString && itemUri ? (
-                  <Image source={{ uri: itemUri }} style={styles.itemImage} resizeMode="contain" />
+                {category === 'accessories' && Array.isArray(categoryItems) && categoryItems.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accessoryScrollContainer}>
+                    {categoryItems.map((accUri, index) => (
+                      <Image 
+                        key={`${accUri}-${index}`} 
+                        source={{ uri: accUri }} 
+                        style={styles.accessoryItemImage} 
+                        resizeMode="contain" 
+                      />
+                    ))}
+                  </ScrollView>
+                ) : typeof categoryItems === 'string' && categoryItems ? (
+                  <Image source={{ uri: categoryItems }} style={styles.itemImage} resizeMode="contain" />
                 ) : (
                   <View style={styles.itemPlaceholderContainer}>
-                    <ThemedText style={styles.itemPlaceholderText} colorToken="textDisabled">
-                      {category === 'accessories' && Array.isArray(itemUri) && itemUri.length > 0 
-                        ? `${itemUri.length} Accessories` 
-                        : `No ${getCategoryDisplayName(category)}`}
-                    </ThemedText>
+                    {/* Render a generic placeholder icon instead of text */}
+                    <FontAwesome5 name="question-circle" size={30} color={getColor('textDisabled', scheme)} />
                   </View>
                 )}
               </View>
@@ -232,17 +241,23 @@ const getStyles = (scheme: 'light' | 'dark') => StyleSheet.create({
     height: '100%', 
     borderRadius: 6,
   },
-  itemPlaceholderContainer: {
+  accessoryScrollContainer: { // New style for horizontal scroll of accessories
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  accessoryItemImage: { // New style for individual accessory images
+    width: 50, // Fixed size for accessories
+    height: 50,
+    borderRadius: 4,
+    marginHorizontal: 4, // Add some spacing between accessory items
+    backgroundColor: getColor('bgScreen', scheme), // Changed from bgSubtle to bgScreen
+  },
+  itemPlaceholderContainer: { // Style for the placeholder container
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: getColor('bgScreen', scheme), // Already set on categorySlot
-    borderRadius: 6,
-  },
-  itemPlaceholderText: {
-    // fontSize: 14, // ThemedText default will handle
-    // color: handled by colorToken="textDisabled"
-    textAlign: 'center',
   },
 }); 

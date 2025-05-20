@@ -12,11 +12,11 @@ interface WardrobeListProps {
   pendingPastedImage: string | null; // To know if an item is pending, affecting empty state logic
   isLoading: boolean; // To know if data is currently being loaded
   // Add a callback prop for deleting an item, specifying category and index
-  onDeleteItem: (category: ClothingCategory, itemIndex: number) => void; 
+  onDeleteItem: (category: ClothingCategory, itemId: string) => void;
   // Add new props for outfit creation mode
   isCreatingOutfit: boolean;
   currentOutfitSelection: OutfitSelection;
-  onSelectItemForOutfit: (category: ClothingCategory, itemUri: string) => void;
+  onSelectItemForOutfit: (category: ClothingCategory, itemId: string) => void;
   // Add new props for global edit mode
   isGlobalEditModeActive: boolean;
   onToggleGlobalEditMode: () => void;
@@ -61,7 +61,6 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
             const itemsForCategory = wardrobeItems[category] || [];
             if (itemsForCategory.length > 0 || isCreatingOutfit || isGlobalEditModeActive) {
               // Get the selection for the current category.
-              // This can be string (for single-select) or string[] (for accessories) or null/undefined.
               const selectionForCategory = currentOutfitSelection[category as keyof OutfitSelection];
 
               return (
@@ -69,11 +68,10 @@ const WardrobeList: React.FC<WardrobeListProps> = ({
                   key={category}
                   title={category.charAt(0).toUpperCase() + category.slice(1)}
                   items={itemsForCategory}
-                  onDeleteItem={(itemIndex) => onDeleteItem(category, itemIndex)}
+                  onDeleteItem={(itemId) => onDeleteItem(category, itemId)}
                   isCreatingOutfit={isCreatingOutfit}
-                  // Pass the direct selection (string, string[], or null after defaulting undefined)
-                  currentOutfitSelectionForCategory={selectionForCategory || null} 
-                  onSelectItemForOutfit={(itemUri) => onSelectItemForOutfit(category, itemUri)}
+                  currentOutfitSelectionForCategory={selectionForCategory}
+                  onSelectItemForOutfit={(itemId) => onSelectItemForOutfit(category, itemId)}
                   isGlobalEditModeActive={isGlobalEditModeActive}
                   onToggleGlobalEditMode={onToggleGlobalEditMode}
                 />

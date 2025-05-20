@@ -20,7 +20,6 @@ import { getColor } from '@/src/constants/theme'; // Adjusted path
 // Import the custom hook that manages all wardrobe logic
 import { useWardrobeManager } from '@/src/hooks/useWardrobeManager'; // Ensure this path is correct based on tsconfig
 // Import the UI components we created
-import { OutfitList } from '@/src/components/outfit/OutfitList'; // Ensure this path is correct
 import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Ensure this path is correct
 import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Ensure this path is correct
 import { CLOTHING_CATEGORIES } from '@/src/constants/wardrobe';
@@ -30,7 +29,6 @@ export default function WardrobeScreen() {
   const {
     wardrobeItems,
     currentOutfitSelection,
-    savedOutfits,
     pendingPastedImage,
     setPendingPastedImage,
     isLoading,
@@ -41,13 +39,11 @@ export default function WardrobeScreen() {
     handleCategorizeImage,
     handleSelectItemForOutfit,
     handleSaveCurrentOutfit,
-    handleDeleteOutfit,
     handleDeleteItem,
     handleSuggestRandomOutfit,
     userSubcategories,
     handleAddSubcategory,
     isCreatingOutfit,
-    setIsCreatingOutfit,
     toggleOutfitCreationMode,
   } = useWardrobeManager();
 
@@ -115,18 +111,16 @@ export default function WardrobeScreen() {
 
             {isCreatingOutfit && (
               <View style={styles.outfitCreationContainer}>
-                <ThemedText type="subtitle" colorToken="pinkRaspberry" style={styles.subHeader}>
-                  Create New Outfit
-                </ThemedText>
-                <View style={styles.actionButtonsContainer}>
-                  <TouchableOpacity 
-                    style={[styles.button, styles.saveOutfitButton]} 
-                    onPress={handleSaveCurrentOutfit} 
-                    disabled={Object.values(currentOutfitSelection).every(item => item === null || (Array.isArray(item) && item.length === 0))}
-                  >
-                    <FontAwesome name="save" size={20} color={getColor('textOnPinkBarbie', scheme)} />
-                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Save Outfit</ThemedText>
+                <View style={styles.outfitCreationHeader}>
+                  <TouchableOpacity onPress={toggleOutfitCreationMode} style={styles.backButton}>
+                    <FontAwesome name="arrow-left" size={24} color={getColor('textSecondary', scheme)} />
                   </TouchableOpacity>
+                  <ThemedText type="subtitle" colorToken="pinkRaspberry" style={styles.subHeader}>
+                    Create New Outfit
+                  </ThemedText>
+                  <View style={{ width: styles.backButton.padding * 2 + 24 }} />
+                </View>
+                <View style={styles.actionButtonsContainer}> {/* This container now only has Save and Suggest */}
                   <TouchableOpacity style={[styles.button, styles.suggestButton]} onPress={handleSuggestRandomOutfit}>
                       <FontAwesome name="random" size={20} color={getColor('textOnPinkBarbie', scheme)} />
                       <ThemedText style={styles.buttonText} colorToken="textOnPinkBarbie">Suggest Random</ThemedText>
@@ -150,20 +144,21 @@ export default function WardrobeScreen() {
                 isLoading={isLoading}       // Pass current loading state
               />
             )}
-
-            {/* Separator only in main view and if not creating outfit */}
-            {showMainWardrobeView && <View style={styles.separator} />}
-
-            {/* OutfitList only in main view */}
-            {showMainWardrobeView && savedOutfits && (
-              <OutfitList
-                savedOutfits={savedOutfits}
-                onDeleteOutfit={handleDeleteOutfit}
-                isGlobalEditModeActive={isGlobalEditModeActive}
-                onToggleGlobalEditMode={toggleGlobalEditMode} 
-              />
-            )}
           </ScrollView>
+        )}
+
+        {/* Save Outfit Button - shown at the bottom only when creating an outfit */}
+        {isCreatingOutfit && (
+          <View style={styles.saveOutfitFooter}>
+            <TouchableOpacity 
+              style={[styles.button, styles.saveOutfitButton, styles.fullWidthButton]} // Add fullWidthButton style
+              onPress={handleSaveCurrentOutfit} 
+              disabled={Object.values(currentOutfitSelection).every(item => item === null || (Array.isArray(item) && item.length === 0))}
+            >
+              <FontAwesome name="save" size={20} color={getColor('textOnPinkBarbie', scheme)} />
+              <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Save Outfit</ThemedText>
+            </TouchableOpacity>
+          </View>
         )}
       </ThemedView>
     </SafeAreaView>
@@ -182,12 +177,12 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   },
   container: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingTop: 16, // Explicit top padding
     paddingHorizontal: 8,
-    paddingBottom: bottomInset + 16,
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
     width: '100%',
+    paddingBottom: bottomInset, // Apply bottom inset padding
   },
   titleContainer: {
     width: '100%',
@@ -201,10 +196,24 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   subHeader: {
     textAlign: 'center',
     marginVertical: 10,
+    flex: 1, // Allow text to take available space in header
+  },
+  outfitCreationHeader: { // New style for the header of the outfit creation section
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 8, // Match container padding
+    marginBottom: 10,
+  },
+  backButton: { // Style for the new back button
+    padding: 8, // Make it easier to tap
+    // Adding explicit width/height for the touchable area might be useful if the icon is small
+    // For now, padding should suffice. We calculate spacer based on this.
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center', // Center the suggest button if it's the only one
     flexWrap: 'wrap',
     width: '100%',
     marginBottom: 10,
@@ -221,39 +230,44 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
+    backgroundColor: getColor('pinkBarbie', scheme), 
   },
   actionButton: {
-    backgroundColor: getColor('buttonPrimary', scheme),
+    // Potentially add specific styles or keep relying on generic button styles
   },
   activeEditButton: {
     backgroundColor: getColor('pinkRaspberry', scheme), // Darker when active
   },
   saveOutfitButton: {
-    backgroundColor: getColor('buttonPrimary', scheme),
+    backgroundColor: getColor('pinkRaspberry', scheme),
   },
-   suggestButton: {
-    backgroundColor: getColor('buttonSecondary', scheme),
+  suggestButton: {
+    backgroundColor: getColor('accentMagenta', scheme),
   },
   buttonText: {
     marginLeft: 8,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   outfitCreationContainer: {
     width: '100%',
-    marginBottom: 16,
     padding: 8,
     borderWidth: 1,
     borderColor: getColor('borderSubtle', scheme),
     borderRadius: 8,
     backgroundColor: getColor('bgCard', scheme),
   },
-  separator: {
-    height: 1,
-    width: '90%',
-    backgroundColor: getColor('borderSubtle', scheme),
-    marginVertical: 24,
-    alignSelf: 'center',
+  saveOutfitFooter: { // New style for the footer containing the save button
+    width: '100%',
+    padding: 8, 
+    paddingBottom: bottomInset > 8 ? bottomInset : 8, // Ensure footer respects bottom inset
+    borderTopWidth: 1,
+    borderTopColor: getColor('borderSubtle', scheme),
+    backgroundColor: getColor('bgScreen', scheme), // Match screen bg
+  },
+  fullWidthButton: { // Style for a button that takes more width, e.g., the save button
+    width: '100%', // Make button take full width of its container
+    margin: 0, // Remove horizontal margin if it's full width
   },
   fullScreenLoaderContainer: {
     flex: 1,
@@ -263,6 +277,5 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   },
   loadingText: {
     marginTop: 8,
-    fontSize: 16,
   },
 });
