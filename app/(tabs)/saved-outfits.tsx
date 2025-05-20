@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { OutfitList } from '@/src/components/outfit/OutfitList';
 import { getColor } from '@/src/constants/theme';
-import { useWardrobeManager } from '@/src/hooks/useWardrobeManager';
+import { useWardrobeManager } from '@/src/context/WardrobeContext';
 
 export default function SavedOutfitsScreen() {
   const {

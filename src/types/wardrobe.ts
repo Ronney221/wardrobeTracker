@@ -44,6 +44,7 @@ export const initialWardrobeState: WardrobeItems = {
 export interface Outfit {
   id: string;
   name: string;
+  createdAt: string; // Added for sorting by creation date
   notes?: string; 
   top?: string[] | null;        // Changed from string | null, now optional
   bottom?: string[] | null;    // Changed from string | null, now optional

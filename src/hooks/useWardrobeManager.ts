@@ -46,7 +46,19 @@ export const useWardrobeManager = () => {
         if (loadedItems) setWardrobeItems(loadedItems);
 
         const storedOutfits = await AsyncStorage.getItem(OUTFITS_STORAGE_KEY);
-        if (storedOutfits) setSavedOutfits(JSON.parse(storedOutfits));
+        if (storedOutfits) {
+          const parsedOutfits: Outfit[] = JSON.parse(storedOutfits);
+          // Sort outfits: most recent first. Handle missing createdAt for legacy items.
+          parsedOutfits.sort((a, b) => {
+            if (a.createdAt && b.createdAt) {
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+            if (a.createdAt) return -1; // a is new, b is old, a comes first
+            if (b.createdAt) return 1;  // b is new, a is old, b comes first
+            return 0; // both are old, maintain original order relative to each other
+          });
+          setSavedOutfits(parsedOutfits);
+        }
         
         const loadedSubcategories = await loadUserSubcategories(); // Load subcategories
         setUserSubcategories(loadedSubcategories); // Set subcategories state
@@ -236,7 +248,6 @@ export const useWardrobeManager = () => {
   }, [isCreatingOutfit]);
 
   const handleSaveCurrentOutfit = useCallback(() => {
-    // Updated check for empty outfit: at least one item in any category array
     const isAnyItemSelected = Object.values(currentOutfitSelection).some(
       (selectedIds) => Array.isArray(selectedIds) && selectedIds.length > 0
     );
@@ -246,43 +257,60 @@ export const useWardrobeManager = () => {
       return;
     }
 
+    const defaultOutfitName = `My Outfit ${savedOutfits.length + 1}`;
+
     Alert.prompt(
       "Name Your Outfit",
-      "Enter a name for this outfit:",
+      "Enter a name for your new outfit (must be unique):",
       [
-        { text: "Cancel", style: "cancel" },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
         {
           text: "Save",
-          onPress: (outfitName) => {
-            if (!outfitName || outfitName.trim() === "") {
-              Alert.alert("Invalid Name", "Outfit name cannot be empty.");
-              return;
-            }
-            const newOutfit: Outfit = {
-              id: Date.now().toString(),
-              name: outfitName.trim(),
-              ...(currentOutfitSelection as OutfitSelection), // Spread the selection which now matches Outfit structure
-            };
+          onPress: (outfitNameInput) => {
+            const outfitName = outfitNameInput ? outfitNameInput.trim() : "";
+            if (outfitName) {
+              const isNameTaken = savedOutfits.some(outfit => outfit.name.toLowerCase() === outfitName.toLowerCase());
+              if (isNameTaken) {
+                Alert.alert("Name Taken", "This outfit name already exists. Please choose a different name.");
+                return; // Prevent saving
+              }
 
-            setSavedOutfits(prevOutfits => [...prevOutfits, newOutfit]);
-            setCurrentOutfitSelection(initialOutfitSelection); // Reset selection
-            setIsCreatingOutfit(false); // Exit outfit creation mode
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert("Outfit Saved!", `"${outfitName}" has been added to your outfits.`);
+              const newOutfit: Outfit = {
+                id: Date.now().toString() + Math.random().toString(36).substring(7), // Simple unique ID
+                name: outfitName,
+                createdAt: new Date().toISOString(), // Add creation timestamp
+                // Spread the selected items, ensuring they are arrays or null
+                top: currentOutfitSelection.top || null,
+                bottom: currentOutfitSelection.bottom || null,
+                outerwear: currentOutfitSelection.outerwear || null,
+                shoes: currentOutfitSelection.shoes || null,
+                accessories: currentOutfitSelection.accessories || null,
+              };
+              setSavedOutfits(prevOutfits => [newOutfit, ...prevOutfits]); // New outfits at the beginning (temporary before sort)
+              setCurrentOutfitSelection(initialOutfitSelection); // Reset selection
+              setIsCreatingOutfit(false); // Exit outfit creation mode
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert("Outfit Saved!", `"${newOutfit.name}" has been saved.`);
+            } else {
+              Alert.alert("Invalid Name", "Please enter a valid name for the outfit.");
+            }
           },
         },
       ],
-      "plain-text" // Prompt type
+      "plain-text",
+      defaultOutfitName // Auto-populate with a default name
     );
-  }, [currentOutfitSelection]); // Depends on the current selection
+  }, [currentOutfitSelection, savedOutfits]); // Added savedOutfits to dependencies for unique check & default name
 
   const handleDeleteOutfit = useCallback((outfitId: string) => {
     setSavedOutfits(prevOutfits => prevOutfits.filter(outfit => outfit.id !== outfitId));
-    // Confirmation Alert is now handled by the component calling this, if needed, or we can keep it here.
-    // For now, let's assume the component handles confirmation just before calling this if in edit mode.
-    saveWardrobeToStorage(wardrobeItems);
+    // The useEffect listening to savedOutfits will handle persisting this change.
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [wardrobeItems, saveWardrobeToStorage]);
+    // Consider if an Alert confirming deletion is needed here or if it's handled by the calling component.
+  }, []); // Dependencies are empty as setSavedOutfits with a functional update is stable.
 
   // --- Global Edit Mode Handler ---
   const toggleGlobalEditMode = useCallback(() => {

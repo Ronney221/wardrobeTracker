@@ -1,23 +1,13 @@
 
 
-subtags 
-bottoms -> your own name
 
-have default categories and let them add their own
-when we paste clothing item there is no need to keep the top part of the screen that says 'my wardrobe, paste clothing item, create outfit, suggest outfit", we can remove the buttons on this screen and change 'my wardrobe' to say 'review & categorize item', we can also exclude 'your collection' and the 'saved outfits' in this screen 
 
-Filtering/Grouping by Subcategory: The UI currently groups by main category. Displaying items grouped by subcategory within each main category in CategorySection.tsx would be a visual enhancement.
+
 Outfit Data Structure: Outfit and OutfitSelection still store item URIs. We might eventually want them to store WardrobeItemData (or at least id and uri) to more easily access names/subcategories of items within an outfit. This is a larger refactor for how outfits are handled.
 Editing Item Details: We don't yet have a way to edit an item's name or subcategory after it's been added to the wardrobe, we can add this to our 'hold to edit' feature when its in edit mode, clicking on the item can let you edit the item name and subcategory
 
-if no clothes are listed just leave it blank instead of saying 'no hat'
-
-
-if you click create a new outfit it highlights the first inputted item already for shirt jacket shoes pants but not hat
-
-after clicking done editing the animation still plays but the X is gone
-
-
+require unique naming
+populate saved outfits sorted by most recently added 
 
 add albums to your saved outfits and favorites
 

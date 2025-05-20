@@ -18,10 +18,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { getColor } from '@/src/constants/theme'; // Adjusted path
 
 // Import the custom hook that manages all wardrobe logic
-import { useWardrobeManager } from '@/src/hooks/useWardrobeManager'; // Ensure this path is correct based on tsconfig
+import { useWardrobeManager } from '@/src/context/WardrobeContext'; // Updated import
 // Import the UI components we created
-import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Ensure this path is correct
-import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Ensure this path is correct
+import PendingItemView from '@/src/components/wardrobe/PendingItemView'; // Corrected import style
+import WardrobeList from '@/src/components/wardrobe/WardrobeList'; // Corrected import style
 import { CLOTHING_CATEGORIES } from '@/src/constants/wardrobe';
 
 // Main functional component for the Wardrobe Screen
