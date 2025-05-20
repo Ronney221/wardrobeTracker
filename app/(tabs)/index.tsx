@@ -2,6 +2,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -52,7 +53,7 @@ export default function WardrobeScreen() {
 
   const insets = useSafeAreaInsets(); // Get insets
   const scheme = useColorScheme() ?? 'light';
-  const styles = getStyles(scheme, insets.bottom);
+  const styles = getStyles(scheme, insets.top, insets.bottom);
 
   // State for EditItemModal
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -118,28 +119,37 @@ export default function WardrobeScreen() {
           <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={{ flexGrow: 1 }}>
             {showMainWardrobeView && (
               <View style={styles.titleContainer}>
-                <ThemedText type="title" colorToken="pinkRaspberry" style={styles.title}>My Wardrobe</ThemedText>
-                <View style={styles.actionButtonsContainer}>
-                  <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={handlePasteImage}>
-                    <FontAwesome name="paste" size={20} color={getColor('textOnPinkBarbie', scheme)} />
-                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Paste Item</ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={toggleOutfitCreationMode}>
-                    <FontAwesome name={isCreatingOutfit ? "close" : "plus"} size={20} color={getColor('textOnPinkBarbie', scheme)} />
-                    <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>
-                      {isCreatingOutfit ? "Cancel Outfit" : "Create Outfit"}
+                <TouchableOpacity style={styles.headerIconTouchableLeft} onPress={() => Alert.alert("Settings", "Settings pressed!")}>
+                  <FontAwesome name="cog" size={24} color={getColor('textSecondary', scheme)} />
+                </TouchableOpacity>
+                <ThemedText type="title" colorToken="pinkRaspberry" style={styles.title}>My Archives</ThemedText>
+                <TouchableOpacity style={styles.headerIconTouchableRight} onPress={() => Alert.alert("Profile", "Profile pressed!")}>
+                  <FontAwesome name="user-circle" size={24} color={getColor('textSecondary', scheme)} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {showMainWardrobeView && (
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={handlePasteImage}>
+                  <FontAwesome name="paste" size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                  <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>Paste Item</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.button, styles.actionButton]} onPress={toggleOutfitCreationMode}>
+                  <FontAwesome name={isCreatingOutfit ? "close" : "plus"} size={20} color={getColor('textOnPinkBarbie', scheme)} />
+                  <ThemedText colorToken="textOnPinkBarbie" style={styles.buttonText}>
+                    {isCreatingOutfit ? "Cancel Outfit" : "Create Outfit"}
+                  </ThemedText>
+                </TouchableOpacity>
+                 <TouchableOpacity 
+                    style={[styles.button, styles.editModeButton, isGlobalEditModeActive && styles.activeEditButton]}
+                    onPress={toggleGlobalEditMode}
+                  >
+                    <FontAwesome name="edit" size={20} color={getColor(isGlobalEditModeActive ? 'textOnPinkBarbie' : 'textSecondary', scheme)} />
+                    <ThemedText style={[styles.buttonText, styles.editModeButtonText, isGlobalEditModeActive && styles.activeEditModeButtonText]}>
+                      {isGlobalEditModeActive ? "Done Editing" : "Edit Items"}
                     </ThemedText>
                   </TouchableOpacity>
-                   <TouchableOpacity 
-                      style={[styles.button, styles.actionButton, isGlobalEditModeActive && styles.activeEditButton]} 
-                      onPress={toggleGlobalEditMode}
-                    >
-                      <FontAwesome name="edit" size={20} color={getColor(isGlobalEditModeActive ? 'textOnPinkBarbie' : 'textOnPinkBarbie', scheme)} />
-                      <ThemedText colorToken={isGlobalEditModeActive ? 'textOnPinkBarbie' : 'textOnPinkBarbie'} style={styles.buttonText}>
-                        {isGlobalEditModeActive ? "Done Editing" : "Edit Items"}
-                      </ThemedText>
-                    </TouchableOpacity>
-                </View>
               </View>
             )}
 
@@ -212,7 +222,7 @@ export default function WardrobeScreen() {
 }
 
 // Styles function
-const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.create({
+const getStyles = (scheme: 'light' | 'dark', topInset: number, bottomInset: number) => StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
@@ -223,7 +233,7 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   },
   container: {
     alignItems: 'center',
-    paddingTop: 16, // Explicit top padding
+    paddingTop: topInset, // Reduced top padding
     paddingHorizontal: 8,
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
@@ -232,12 +242,23 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   },
   titleContainer: {
     width: '100%',
+    flexDirection: 'row', // Arrange icons and title in a row
+    justifyContent: 'space-between', // Space out icons and title
     alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 8, // Add padding to space icons from edges
   },
   title: {
-    marginBottom: 12,
     textAlign: 'center',
+    flex: 1, // Allow title to take remaining space for centering
+  },
+  headerIconTouchableLeft: {
+    padding: 8, 
+    // Position absolutely or use flex to place on left
+  },
+  headerIconTouchableRight: {
+    padding: 8,
+    // Position absolutely or use flex to place on right
   },
   subHeader: {
     textAlign: 'center',
@@ -259,9 +280,10 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center', // Center the suggest button if it's the only one
+    justifyContent: 'center', 
     flexWrap: 'wrap',
     width: '100%',
+    alignItems: 'center', // Align items to center vertically if they wrap to new lines
     marginBottom: 10,
   },
   button: {
@@ -279,10 +301,24 @@ const getStyles = (scheme: 'light' | 'dark', bottomInset: number) => StyleSheet.
     backgroundColor: getColor('pinkBarbie', scheme), 
   },
   actionButton: {
-    // Potentially add specific styles or keep relying on generic button styles
+    // Main action buttons - "Paste Item", "Create Outfit"
+    // These will use the default 'button' style primarily
+    // You can add specific overrides here if needed in the future
+  },
+  editModeButton: { // New style for the "Edit Items" button (default state)
+    backgroundColor: getColor('bgMuted', scheme),
+    paddingHorizontal: 10, // Slightly less horizontal padding
+    margin: 3, // Slightly smaller margin
+  },
+  editModeButtonText: { // Style for the text of the "Edit Items" button (default state)
+    color: getColor('textSecondary', scheme),
+    marginLeft: 6, // Slightly reduced margin for text
   },
   activeEditButton: {
     backgroundColor: getColor('pinkRaspberry', scheme), // Darker when active
+  },
+  activeEditModeButtonText: { // Style for text of "Edit Items" button when active
+    color: getColor('textOnPinkBarbie', scheme),
   },
   saveOutfitButton: {
     backgroundColor: getColor('pinkRaspberry', scheme),
