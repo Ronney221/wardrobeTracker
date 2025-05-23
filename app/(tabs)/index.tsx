@@ -1,15 +1,15 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    // Text, // Will use ThemedText or style existing Text
-    TouchableOpacity,
-    View,
-    useColorScheme
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  // Text, // Will use ThemedText or style existing Text
+  TouchableOpacity,
+  View,
+  useColorScheme
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import useSafeAreaInsets
 
@@ -233,7 +233,6 @@ const getStyles = (scheme: 'light' | 'dark', topInset: number, bottomInset: numb
   },
   container: {
     alignItems: 'center',
-    paddingTop: topInset, // Reduced top padding
     paddingHorizontal: 8,
     flex: 1,
     backgroundColor: getColor('bgScreen', scheme),
