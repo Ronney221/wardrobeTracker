@@ -2,7 +2,7 @@
 
 MyApp is a mobile application built with Expo (React Native) and TypeScript, designed to help users digitally organize their wardrobe, create outfits, and manage their clothing items efficiently.
 
-## elevator_pitch="Streamline your style with MyApp, the intuitive mobile wardrobe organizer. Easily catalog your clothes, create stunning outfits, and rediscover your personal fashion collection."
+## Streamline your style with MyApp, the intuitive mobile wardrobe organizer. Easily catalog your clothes, create stunning outfits, and rediscover your personal fashion collection
 
 ## Key Features
  
